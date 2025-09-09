@@ -21,7 +21,7 @@
 
 ## 준비 사항
 ### DB 예상 구조
-```mermaid
+
 ```text
 [Source PostgreSQL] → [Azure DMS] → [Target PostgreSQL (Replica)]
                                             ↓
