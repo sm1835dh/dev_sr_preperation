@@ -11,6 +11,9 @@
 * DB -> 신규 DB로 데이터 dump 방법 문의
 * DB -> 신규 DB로 CDC 가능한지 문의 (Read replica 만들어 줄 수 있는지, VPC 이슈가 없는지)
 
+### 로그 
+* 질의어 로그 
+
 ### 소프트웨어 설치 확인 
 * DB 접속 툴 - https://www.pgadmin.org/, https://dbeaver.io/
 * VSCode - https://code.visualstudio.com/ 
@@ -31,23 +34,34 @@
 
 | 대분류 | 소분류 | 항목 | 작업자 |
 |---|---|---|---|
-| Database profiling | 데이터 확인 | ☐ 원천 테이블 주요 테이블 리스트 정리<br>☐ 테이블 스키마 정리 | 미정 |
+| Database profiling | 데이터 확인 | ☐ 원천 테이블 주요 테이블 리스트 정리 | 미정 |
+|  |  | ☐ 원천 테이블 스키마 정리 | 미정 |
 |  |  | ☐ 루비콘 테이블 스키마 정리 | 미정 |
-|  | 데이터 통계 추출 | ☐ 원천 테이블 | 미정 |
-|  |  | ☐ 루비콘 마트 테이블 | 미정 |
 |  |  | ☐ Synonym dictionary | 미정 |
+|  | 데이터 통계 추출 | ☐ 원천 테이블 | 미정 |
+|  |  | ☐ 루비콘 테이블 | 미정 |
 | Data Standardization |  | ☐ Naming standard | 미정 |
 |  |  | ☐ Definition standard | 미정 |
 |  |  | ☐ Format standard | 미정 |
 |  |  | ☐ Code standard | 미정 |
-| Metadata | 생성 | ☐ Short column description | 미정 |
+| User data analysis |  | ☐ 질의어 분석 | 미정 |
+|  |  | ☐ TC 분석 | 미정 |
+| Metadata Extension | Metadata | ☐ Short column description | 미정 |
 |  |  | ☐ Long column  description | 미정 |
 |  |  | ☐ Table profile description | 미정 |
-|  |  | ☐ SQL-to-Text | 미정 |
-| Data Load |  | ☐ Replication 작업 | 미정 |
-| Data Mart |  | ☐ Design | 미정 |
+|  | SQL-to-Text | ☐ 대상 쿼리 확보 | 미정 | 
+| Data Ingestion |  | ☐ Replication 작업 | 미정 |
+|  |  | ☐ PostgreSQL 셋팅 | 미정 |
+|  |  | ☐ Azure Data Factory 셋팅 | 미정 |
+|  |  | ☐ Cosmos DB 셋팅 | 미정 |
+|  |  | ☐ AI Search 셋팅 | 미정 |
+| Data Loading |  | ☐ Mart 테이블 정형 저장소에 적재 | 미정 | 
+|  |  | ☐ Metadata 정형 저장소에 적재 | 미정 | 
+|  |  | ☐ Metadata 비정형 저장소에 적재 | 미정 | 
+| Data Mart | 정형 | ☐ Design | 미정 |
 |  |  | ☐ Build | 미정 |
+|  |  | ☐ Validation | 미정 |
+| Mock DB |  | ☐ Mock DB 생성 (마트 스키마 사용) | 미정 |
+|  |  | ☐ 샘플 데이터 적재 | 미정 |
 | 기타 | 데이터 확인 | ☐ 프로모션 테이블 확인 | 미정 |
 |  |  | ☐ Query log 분석 | 미정 |
-|  |  | ☐ 질의어 분석 | 미정 |
-|  |  | ☐ TC 분석 | 미정 |
