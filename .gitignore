@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+*.env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Data files
+data/
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.json
+*.pkl
+*.pickle
+
+# Azure
+.azure/
+*.azureauth
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# uv
+.python-version

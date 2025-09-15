@@ -3,6 +3,10 @@
 ### 네트워크
 * 외부 데이터를 내부망 PC로 옮기는 방법
 * 외부망 사용 PC를 내부망 PC로 붙일 때, 보안 허가 필요한지 확인
+* Airdrop 확인 
+
+### Server
+* 서버 접근제어 신청 
 
 ### DB 
 * DB 계정 신청 (DDL, DML 어디까지 가능한지 확인)
@@ -10,17 +14,21 @@
 * DB내 테이블 생성 문의
 * DB -> 신규 DB로 데이터 dump 방법 문의
 * DB -> 신규 DB로 CDC 가능한지 문의 (Read replica 만들어 줄 수 있는지, VPC 이슈가 없는지)
+* Query log 확인
 
 ### 로그 
 * 질의어 로그 
 
-### 소프트웨어 설치 확인 
+### 소프트웨어 확인 
 * DB 접속 툴 - https://www.pgadmin.org/, https://dbeaver.io/
 * VSCode - https://code.visualstudio.com/ 
 * iterm2 - https://iterm2.com/
+* VSCode extension 
+* Python 버전 확인
+* Python 라이브러리 (ex. jupyter, uv) 
 
 ## 준비 사항
-### DB 예상 구조
+### 데이터 Ingestion
 
 ```text
 [Source PostgreSQL] → [Azure DMS] → [Target PostgreSQL (Replica)]
@@ -50,6 +58,7 @@
 |  |  | ☐ Long column  description | 미정 |
 |  |  | ☐ Table profile description | 미정 |
 |  | SQL-to-Text | ☐ 대상 쿼리 확보 | 미정 | 
+|  |  | ☐ Summarize columns | 미정 | 
 | Data Ingestion |  | ☐ Replication 작업 | 미정 |
 |  |  | ☐ PostgreSQL 셋팅 | 미정 |
 |  |  | ☐ Azure Data Factory 셋팅 | 미정 |
