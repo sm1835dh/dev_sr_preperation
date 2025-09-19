@@ -1,0 +1,532 @@
+INFO:faiss.loader:Loading faiss.
+INFO:faiss.loader:Successfully loaded faiss.
+INFO:__main__:Starting Database File Generation
+INFO:__main__:Starting complete pipeline for all databases
+INFO:__main__:Loading sample databases from BIRD dataset...
+INFO:modules.bird_loader:Sampled 10 databases with questions
+INFO:__main__:Processing 10 databases...
+INFO:__main__:Processing 1/10: shakespeare
+INFO:__main__:Processing database: shakespeare
+INFO:__main__:Generating LLM summaries for shakespeare
+INFO:modules.llm_summarizer:Summarizing table: paragraphs
+INFO:modules.llm_summarizer:Generating summaries for paragraphs.paragraphs_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for paragraphs.T1
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for paragraphs.Description
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for paragraphs.PlainText
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for paragraphs.chapter_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Summarizing table: chapters
+INFO:modules.llm_summarizer:Generating summaries for chapters.chapters_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for chapters.T1
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for chapters.Description
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for chapters.PlainText
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for chapters.chapter_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for shakespeare
+INFO:modules.schema_linker:Built LSH index with 10 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 10 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 10 fields from 2 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: In "Florence. Without the walls. A tucket afar off", what is the id of the character that was mentioned in "His name, I pray you."?
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 10 fields from 2 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+WARNING:modules.sql_generator:No valid SQL candidates found
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/shakespeare.txt
+INFO:__main__:Processing 2/10: cars
+INFO:__main__:Processing database: cars
+INFO:__main__:Generating LLM summaries for cars
+INFO:modules.llm_summarizer:Summarizing table: data
+INFO:modules.llm_summarizer:Generating summaries for data.data_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for data.CAST
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for data.ID
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for data.country
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for data.origin
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Summarizing table: production
+INFO:modules.llm_summarizer:Generating summaries for production.production_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for production.CAST
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for production.ID
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for production.country
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for production.origin
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Summarizing table: country
+INFO:modules.llm_summarizer:Generating summaries for country.country_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for country.CAST
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for country.ID
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for country.country
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for country.origin
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for cars
+INFO:modules.schema_linker:Built LSH index with 25 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 15 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 15 fields from 3 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: Calculate the percentage of American cars among all cars.
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 15 fields from 3 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+WARNING:modules.sql_generator:No valid SQL candidates found
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/cars.txt
+INFO:__main__:Processing 3/10: ice_hockey_draft
+INFO:__main__:Processing database: ice_hockey_draft
+INFO:__main__:Generating LLM summaries for ice_hockey_draft
+INFO:modules.llm_summarizer:Summarizing table: weight_info
+INFO:modules.llm_summarizer:Generating summaries for weight_info.weight_info_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for weight_info.T1
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for weight_info.nation
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for weight_info.T2
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for weight_info.weight_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Summarizing table: PlayerInfo
+INFO:modules.llm_summarizer:Generating summaries for PlayerInfo.PlayerInfo_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for PlayerInfo.T1
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for PlayerInfo.nation
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for PlayerInfo.T2
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for PlayerInfo.weight_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for ice_hockey_draft
+INFO:modules.schema_linker:Built LSH index with 35 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 10 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 10 fields from 2 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: Among the USA players, who has the lightest weight?
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 10 fields from 2 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+WARNING:modules.sql_generator:No valid SQL candidates found
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/ice_hockey_draft.txt
+INFO:__main__:Processing 4/10: bike_share_1
+INFO:__main__:Processing database: bike_share_1
+INFO:__main__:Generating LLM summaries for bike_share_1
+INFO:modules.llm_summarizer:Summarizing table: weather
+INFO:modules.llm_summarizer:Generating summaries for weather.weather_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for weather.zip_code
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for weather.date
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for weather.SUM
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for bike_share_1
+INFO:modules.schema_linker:Built LSH index with 39 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 4 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 4 fields from 1 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: What is the mean temperature in Fahrenheit on 8/29/2013 for the area where the zip code is 94107?
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 4 fields from 1 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+WARNING:modules.sql_generator:No valid SQL candidates found
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/bike_share_1.txt
+INFO:__main__:Processing 5/10: simpson_episodes
+INFO:__main__:Processing database: simpson_episodes
+INFO:__main__:Generating LLM summaries for simpson_episodes
+INFO:modules.llm_summarizer:Summarizing table: Episode
+INFO:modules.llm_summarizer:Generating summaries for Episode.Episode_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Episode.DISTINCT
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Episode.episode_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Episode.votes
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Summarizing table: Vote
+INFO:modules.llm_summarizer:Generating summaries for Vote.Vote_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Vote.DISTINCT
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Vote.episode_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Vote.votes
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for simpson_episodes
+INFO:modules.schema_linker:Built LSH index with 47 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 8 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 9 fields from 3 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: Among episodes from 10 to 20, which episode has more than 200 votes?
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 9 fields from 3 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 9 fields from 3 tables
+INFO:modules.sql_generator:Selected SQL with score 7: SELECT e.episode_id, COUNT(v.Vote_id) AS vote_count FROM Episode e JOIN Vote v ON e.episode_id = v.e...
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/simpson_episodes.txt
+INFO:__main__:Processing 6/10: world_development_indicators
+INFO:__main__:Processing database: world_development_indicators
+INFO:__main__:Generating LLM summaries for world_development_indicators
+INFO:modules.llm_summarizer:Summarizing table: Country
+INFO:modules.llm_summarizer:Generating summaries for Country.Country_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Country.SystemOfTrade
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Country.CAST
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Country.Region
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for world_development_indicators
+INFO:modules.schema_linker:Built LSH index with 51 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 4 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 4 fields from 1 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: Please calculate the percentage of Sub-Saharan African countries which are in the Special trade system.
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 4 fields from 1 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 4 fields from 1 tables
+INFO:modules.sql_generator:Selected SQL with score 7: SELECT (COUNT(CASE WHEN c.Region = 'Sub-Saharan Africa' AND c.SystemOfTrade = 'Special Trade System'...
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/world_development_indicators.txt
+INFO:__main__:Processing 7/10: disney
+INFO:__main__:Processing database: disney
+INFO:__main__:Generating LLM summaries for disney
+INFO:modules.llm_summarizer:Summarizing table: movies_total_gross
+INFO:modules.llm_summarizer:Generating summaries for movies_total_gross.movies_total_gross_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for movies_total_gross.SUM
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for disney
+INFO:modules.schema_linker:Built LSH index with 53 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 2 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 4 fields from 3 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: Name the top 5 highest-grossing Disney movies adjusted for inflation. Identify the percentage they contributed to the total of Disney's current gross.
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 4 fields from 3 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+WARNING:modules.sql_generator:No valid SQL candidates found
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/disney.txt
+INFO:__main__:Processing 8/10: works_cycles
+INFO:__main__:Processing database: works_cycles
+INFO:__main__:Generating LLM summaries for works_cycles
+INFO:modules.llm_summarizer:Summarizing table: SalesPerson
+INFO:modules.llm_summarizer:Generating summaries for SalesPerson.SalesPerson_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for SalesPerson.TerritoryID
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for SalesPerson.T2
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for SalesPerson.BusinessEntityID
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Summarizing table: Person
+INFO:modules.llm_summarizer:Generating summaries for Person.Person_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Person.TerritoryID
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Person.T2
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Person.BusinessEntityID
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for works_cycles
+INFO:modules.schema_linker:Built LSH index with 61 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 8 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 8 fields from 2 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: Who is the sales person in charge of the territory with the id "9"? Provide their full name.
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 8 fields from 2 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+WARNING:modules.sql_generator:No valid SQL candidates found
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/works_cycles.txt
+INFO:__main__:Processing 9/10: food_inspection
+INFO:__main__:Processing database: food_inspection
+INFO:__main__:Generating LLM summaries for food_inspection
+INFO:modules.llm_summarizer:Summarizing table: businesses
+INFO:modules.llm_summarizer:Generating summaries for businesses.businesses_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for businesses.city
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for businesses.COUNT
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for food_inspection
+INFO:modules.schema_linker:Built LSH index with 64 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 3 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 3 fields from 1 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: How many eateries are located in Hayward?
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 3 fields from 1 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+WARNING:modules.sql_generator:No valid SQL candidates found
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/food_inspection.txt
+INFO:__main__:Processing 10/10: regional_sales
+INFO:__main__:Processing database: regional_sales
+INFO:__main__:Generating LLM summaries for regional_sales
+INFO:modules.llm_summarizer:Summarizing table: Customers
+INFO:modules.llm_summarizer:Generating summaries for Customers.Customers_id
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Customers.T1
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Customers.DISTINCT
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.llm_summarizer:Generating summaries for Customers.CustomerID
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:__main__:Building schema indexes for regional_sales
+INFO:modules.schema_linker:Built LSH index with 68 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Built FAISS index with 4 fields
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 5 fields from 2 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Built few-shot index with 2 examples
+INFO:modules.sql_generator:Generating SQL for question: Please list the names of customers who have total orders of over 3 in 2018.
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.schema_linker:Focused schema has 5 fields from 2 tables
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://kt-azure-openai-dev-donghunseo.openai.azure.com/openai/deployments/gpt-4.1-nano/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO:modules.sql_generator:Generated 5 SQL candidates
+WARNING:modules.sql_generator:No valid SQL candidates found
+INFO:__main__:Generated file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/regional_sales.txt
+INFO:__main__:Generated summary file: /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files/summary.txt
+INFO:__main__:Pipeline completed! Generated 10 database files in /Users/toby/prog/kt/rubicon/dev_sr_preperation/src/data/database_files
+INFO:__main__:Database file generation completed successfully!
