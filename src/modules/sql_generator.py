@@ -43,6 +43,16 @@ class SQLGenerator:
     def _load_enhanced_examples(self):
         """Load enhanced few-shot examples from file"""
         try:
+            # First try BIRD examples
+            bird_examples_path = Path(__file__).parent.parent / 'data' / 'bird_few_shot_examples.json'
+            if bird_examples_path.exists():
+                with open(bird_examples_path, 'r') as f:
+                    enhanced_examples = json.load(f)
+                self.build_few_shot_index(enhanced_examples)
+                logger.info(f"Loaded {len(enhanced_examples)} BIRD few-shot examples")
+                return
+
+            # Fallback to original examples
             examples_path = Path(__file__).parent.parent / 'data' / 'few_shot_examples.json'
             if examples_path.exists():
                 with open(examples_path, 'r') as f:
@@ -118,7 +128,7 @@ class SQLGenerator:
         return selected_examples
 
     def generate_sql_candidates(self, question: str, schema_context: str,
-                               few_shot_examples: List[Dict]) -> List[str]:
+                               few_shot_examples: List[Dict], evidence: str = "") -> List[str]:
         """
         Generate multiple SQL candidates with different parameters
         Section 4: Generate multiple candidates for majority voting
@@ -128,29 +138,31 @@ class SQLGenerator:
         # Build few-shot prompt
         few_shot_prompt = self._build_few_shot_prompt(few_shot_examples)
 
-        # Generation configurations
+        # Enhanced generation configurations for better diversity
         configs = [
-            {'temperature': 0.1, 'top_p': 0.9},
-            {'temperature': 0.3, 'top_p': 0.8},
-            {'temperature': 0.5, 'top_p': 0.7},
-            {'temperature': 0.2, 'top_p': 1.0},
-            {'temperature': 0.4, 'top_p': 0.9}
+            {'temperature': 0.0, 'top_p': 1.0},  # Deterministic
+            {'temperature': 0.1, 'top_p': 0.95},  # Very focused
+            {'temperature': 0.2, 'top_p': 0.9},   # Focused
+            {'temperature': 0.3, 'top_p': 0.85},  # Balanced
+            {'temperature': 0.4, 'top_p': 0.8},   # Slightly creative
+            {'temperature': 0.5, 'top_p': 0.75},  # Creative
         ]
 
         for config in configs:
             sql = self._generate_single_sql(
                 question, schema_context, few_shot_prompt,
                 temperature=config['temperature'],
-                top_p=config['top_p']
+                top_p=config['top_p'],
+                evidence=evidence
             )
-            if sql:
+            if sql and sql not in candidates:  # Avoid duplicates
                 candidates.append(sql)
 
-        logger.info(f"Generated {len(candidates)} SQL candidates")
+        logger.info(f"Generated {len(candidates)} unique SQL candidates")
         return candidates
 
     def _build_few_shot_prompt(self, examples: List[Dict]) -> str:
-        """Build few-shot learning prompt from examples"""
+        """Build enhanced few-shot learning prompt from examples"""
         if not examples:
             return ""
 
@@ -159,6 +171,9 @@ class SQLGenerator:
         for i, example in enumerate(examples, 1):
             prompt_parts.append(f"Example {i}:")
             prompt_parts.append(f"Question: {example['question']}")
+            # Add evidence if available (from BIRD dataset)
+            if 'evidence' in example and example['evidence']:
+                prompt_parts.append(f"Evidence: {example['evidence']}")
             prompt_parts.append(f"SQL: {example['sql']}")
             prompt_parts.append("")
 
@@ -166,29 +181,41 @@ class SQLGenerator:
 
     def _generate_single_sql(self, question: str, schema_context: str,
                             few_shot_prompt: str, temperature: float = 0.1,
-                            top_p: float = 0.9) -> str:
-        """Generate a single SQL query"""
+                            top_p: float = 0.9, evidence: str = "") -> str:
+        """Generate a single SQL query with enhanced prompt"""
+        # Enhanced prompt with clearer instructions
         prompt = f"""{few_shot_prompt}
 
 Database Schema:
 {schema_context}
 
 Question: {question}
+{f'Evidence/Hint: {evidence}' if evidence else ''}
 
-Instructions:
-- Generate ONLY a valid SQL query
-- Do not include explanations, assumptions, or notes
-- Use simple, direct approaches
-- Avoid unnecessary complexity
-- Return only the SQL statement
+Important SQL Generation Rules:
+1. Use exact column names from the schema above
+2. For JOINs, use the foreign key relationships indicated by [FK -> table.column]
+3. Always use table aliases for clarity
+4. For string comparisons, use LIKE when appropriate
+5. For date/time filtering, use proper date functions
+6. Return ONLY the SQL query, no explanations
 
 SQL:"""
+
+        # Enhanced system message with specific SQL generation guidance
+        system_message = """You are an expert SQL developer specializing in the BIRD dataset.
+Generate ONLY executable SQL queries following these principles:
+- Use the exact table and column names from the provided schema
+- Pay attention to foreign key relationships marked with [FK -> ]
+- Write efficient queries with proper JOINs
+- Return ONLY the SQL statement, no explanations or markdown
+- Follow SQL best practices for the specific database dialect"""
 
         try:
             response = self.llm_client.chat.completions.create(
                 model=self.config.AZURE_OPENAI_DEPLOYMENT,
                 messages=[
-                    {"role": "system", "content": "You are an expert SQL developer. Return ONLY valid SQL queries without any explanations or markdown. Your response must be a single SQL statement that can be executed directly."},
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=temperature,
@@ -377,30 +404,37 @@ SQL:"""
         return best_sql
 
     def generate_sql(self, question: str, database_profile: Dict,
-                    table_summaries: Dict) -> Dict:
+                    table_summaries: Dict, evidence: str = "") -> Dict:
         """
-        Main SQL generation pipeline
+        Main SQL generation pipeline with evidence support
         Section 4: Complete pipeline from question to SQL
         """
         logger.info(f"Generating SQL for question: {question}")
 
-        # Step 1: Schema linking
+        # Step 1: Schema linking with relationship detection
         focused_schema = self.schema_linker.get_focused_schema(question)
 
-        # Step 2: Generate schema context
+        # Step 2: Generate enhanced schema context with foreign keys
         schema_context = self.schema_linker.generate_schema_context(
             'focused', 'maximal', focused_schema
         )
 
-        # Step 3: Select few-shot examples
-        few_shot_examples = self.select_few_shot_examples(question, k=3)
+        # If schema is too small, expand it
+        if len(focused_schema) < 2 and not evidence:
+            # Try with full schema for better coverage
+            schema_context = self.schema_linker.generate_schema_context(
+                'full', 'minimal'
+            )
 
-        # Step 4: Generate SQL candidates
+        # Step 3: Select few-shot examples (increase k for better examples)
+        few_shot_examples = self.select_few_shot_examples(question, k=5)
+
+        # Step 4: Generate SQL candidates with evidence
         sql_candidates = self.generate_sql_candidates(
-            question, schema_context, few_shot_examples
+            question, schema_context, few_shot_examples, evidence
         )
 
-        # Step 5: Select best SQL using majority voting
+        # Step 5: Select best SQL using enhanced majority voting
         final_sql = self.majority_voting(sql_candidates, question)
 
         # Step 6: Final validation
@@ -408,6 +442,7 @@ SQL:"""
 
         return {
             'question': question,
+            'evidence': evidence,
             'focused_schema': focused_schema,
             'few_shot_examples': [ex['question'] for ex in few_shot_examples],
             'sql_candidates': sql_candidates,

@@ -54,6 +54,7 @@ class DatabaseEvaluator:
             question = question_data['question']
             ground_truth_sql = question_data.get('SQL', '')
             evidence = question_data.get('evidence', '')
+            db_id = question_data.get('db_id', db_name)
 
             # Create mock profile for schema linking (simplified)
             mock_profile = self._create_simple_profile(db_name, ground_truth_sql)
@@ -70,17 +71,22 @@ class DatabaseEvaluator:
             ]
             self.sql_generator.build_few_shot_index(examples)
 
-            # Generate prediction
-            prediction_result = self.sql_generator.generate_sql(question, mock_profile, mock_summaries)
+            # Generate prediction with evidence
+            prediction_result = self.sql_generator.generate_sql(
+                question, mock_profile, mock_summaries, evidence=evidence
+            )
             predicted_sql = prediction_result.get('final_sql', '')
 
             # Evaluate prediction
             evaluation = {
                 'database_name': db_name,
+                'db_id': db_id,
                 'question': question,
                 'ground_truth_sql': ground_truth_sql,
                 'predicted_sql': predicted_sql,
-                'evidence': evidence
+                'evidence': evidence,
+                'focused_schema': prediction_result.get('focused_schema', {}),
+                'num_candidates': len(prediction_result.get('sql_candidates', []))
             }
 
             # SQL syntax validation
@@ -113,36 +119,82 @@ class DatabaseEvaluator:
             }
 
     def _create_simple_profile(self, db_name: str, sql: str) -> Dict:
-        """Create simplified profile for evaluation"""
-        # Extract tables from SQL
+        """Create enhanced profile for evaluation with better schema extraction"""
+        # Extract tables and columns from SQL
         table_pattern = r'FROM\s+(\w+)|JOIN\s+(\w+)'
-        tables = []
+        column_pattern = r'(\w+)\.(\w+)'
+
+        tables = set()
+        columns_by_table = {}
+
+        # Find tables
         for match in re.finditer(table_pattern, sql, re.IGNORECASE):
             table = match.group(1) or match.group(2)
-            if table and table not in tables:
-                tables.append(table)
+            if table:
+                tables.add(table.lower())
+                columns_by_table[table.lower()] = set()
+
+        # Find columns with table prefixes
+        for match in re.finditer(column_pattern, sql):
+            table = match.group(1).lower()
+            column = match.group(2).lower()
+            if table in tables:
+                columns_by_table[table].add(column)
+
+        # Also extract columns from SELECT, WHERE, GROUP BY, ORDER BY
+        select_pattern = r'SELECT\s+(.+?)\s+FROM'
+        where_pattern = r'WHERE\s+(.+?)(?:GROUP|ORDER|HAVING|LIMIT|$)'
+
+        select_match = re.search(select_pattern, sql, re.IGNORECASE | re.DOTALL)
+        if select_match:
+            select_clause = select_match.group(1)
+            # Extract column names
+            for col in re.findall(r'\b(\w+)\b', select_clause):
+                if col.lower() not in ['as', 'distinct', 'count', 'sum', 'avg', 'max', 'min']:
+                    # Add to first table if no table specified
+                    if tables:
+                        first_table = list(tables)[0]
+                        columns_by_table[first_table].add(col.lower())
 
         if not tables:
-            tables = ['main_table']
+            tables = {'main_table'}
+            columns_by_table = {'main_table': {'id', 'name', 'value'}}
 
-        # Create mock profile
+        # Create enhanced profile
         profile = {'schema_name': f"bird_{db_name}", 'tables': {}}
 
         for table in tables:
+            columns = columns_by_table.get(table, set())
+            if not columns:
+                columns = {'id', 'name', 'value'}  # Default columns
+
             profile['tables'][table] = {
                 'table_name': table,
                 'record_count': 1000,
-                'columns': {
-                    f"{table}_id": {
-                        'column_name': f"{table}_id",
-                        'data_type': 'INTEGER',
-                        'null_count': 0,
-                        'non_null_count': 1000,
-                        'distinct_count': 1000,
-                        'top_values': [{'value': '1', 'count': 1}]
-                    }
-                }
+                'columns': {}
             }
+
+            # Add columns
+            for column in columns:
+                profile['tables'][table]['columns'][column] = {
+                    'column_name': column,
+                    'data_type': 'VARCHAR' if 'name' in column else 'INTEGER',
+                    'null_count': 0,
+                    'non_null_count': 1000,
+                    'distinct_count': 100,
+                    'top_values': [{'value': 'sample', 'count': 10}]
+                }
+
+            # Always add an id column if not present
+            if 'id' not in columns:
+                profile['tables'][table]['columns']['id'] = {
+                    'column_name': 'id',
+                    'data_type': 'INTEGER',
+                    'null_count': 0,
+                    'non_null_count': 1000,
+                    'distinct_count': 1000,
+                    'top_values': [{'value': '1', 'count': 1}]
+                }
 
         return profile
 

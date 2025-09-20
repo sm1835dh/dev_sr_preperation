@@ -34,6 +34,39 @@ class SchemaLinker:
         self.faiss_index = None
         self.field_metadata = {}
         self.field_samples = {}
+        self.foreign_keys = {}  # Store foreign key relationships
+        self.table_relationships = {}  # Store table relationships
+
+    def detect_foreign_keys(self, database_profile: Dict):
+        """Detect foreign key relationships based on column naming patterns"""
+        tables = database_profile.get('tables', {})
+
+        # Common foreign key patterns
+        fk_patterns = ['_id', '_code', '_num', '_no', '_key']
+
+        for table_name, table_data in tables.items():
+            self.table_relationships[table_name] = set()
+
+            for col_name, col_data in table_data.get('columns', {}).items():
+                # Check if column name suggests a foreign key
+                for pattern in fk_patterns:
+                    if pattern in col_name.lower():
+                        # Try to find the referenced table
+                        potential_table = col_name.lower().replace(pattern, '')
+
+                        # Check if the potential table exists
+                        for other_table in tables.keys():
+                            if potential_table in other_table.lower() or other_table.lower() in potential_table:
+                                fk_key = f"{table_name}.{col_name}"
+                                ref_key = f"{other_table}.id"  # Assume 'id' as primary key
+
+                                # Check if the referenced column exists
+                                if 'id' in tables[other_table].get('columns', {}):
+                                    self.foreign_keys[fk_key] = ref_key
+                                    self.table_relationships[table_name].add(other_table)
+                                    self.table_relationships.setdefault(other_table, set()).add(table_name)
+
+        logger.info(f"Detected {len(self.foreign_keys)} potential foreign key relationships")
 
     def build_lsh_index(self, database_profile: Dict):
         """
@@ -60,6 +93,9 @@ class SchemaLinker:
                     self.lsh_index.insert(field_key, m)
 
         logger.info(f"Built LSH index with {len(self.field_samples)} fields")
+
+        # Detect foreign keys after building index
+        self.detect_foreign_keys(database_profile)
 
     def build_faiss_index(self, table_summaries: Dict):
         """
@@ -181,7 +217,7 @@ class SchemaLinker:
 
     def get_focused_schema(self, question: str) -> Dict[str, List[str]]:
         """
-        Get focused schema based on question
+        Get focused schema based on question with enhanced relationship detection
         Section 3: Combination of semantic similarity and literal matching
         """
         focused_fields = set()
@@ -205,7 +241,23 @@ class SchemaLinker:
                     focused_schema[table] = []
                 focused_schema[table].append(column)
 
-        logger.info(f"Focused schema has {len(focused_fields)} fields from {len(focused_schema)} tables")
+        # Add related tables through foreign keys
+        tables_to_check = list(focused_schema.keys())
+        for table in tables_to_check:
+            if table in self.table_relationships:
+                for related_table in self.table_relationships[table]:
+                    if related_table not in focused_schema:
+                        # Add the primary key and foreign key columns
+                        focused_schema[related_table] = ['id']  # Assume 'id' as primary key
+
+                        # Add foreign key columns that reference this table
+                        for fk, ref in self.foreign_keys.items():
+                            if ref.startswith(f"{related_table}."):
+                                fk_table, fk_col = fk.split('.', 1)
+                                if fk_table in focused_schema and fk_col not in focused_schema[fk_table]:
+                                    focused_schema[fk_table].append(fk_col)
+
+        logger.info(f"Focused schema has {len(focused_fields)} fields from {len(focused_schema)} tables (including related)")
         return focused_schema
 
     def generate_schema_context(self, schema_type: str, profile_type: str,
@@ -246,20 +298,35 @@ class SchemaLinker:
 
                 if profile_type == 'minimal':
                     description = metadata.get('short_description', '')
-                    table_columns.append(f"  - {column}: {description}")
+                    # Check if this is a foreign key
+                    fk_info = ""
+                    field_key_check = f"{table}.{column}"
+                    if field_key_check in self.foreign_keys:
+                        fk_info = f" [FK -> {self.foreign_keys[field_key_check]}]"
+                    table_columns.append(f"  - {column}: {description}{fk_info}")
                 elif profile_type == 'maximal':
                     description = metadata.get('long_description', '')
                     # Truncate long descriptions for cleaner context
                     if len(description) > 200:
                         description = description[:200] + "..."
-                    table_columns.append(f"  - {column}: {description}")
+                    # Check if this is a foreign key
+                    fk_info = ""
+                    field_key_check = f"{table}.{column}"
+                    if field_key_check in self.foreign_keys:
+                        fk_info = f" [FK -> {self.foreign_keys[field_key_check]}]"
+                    table_columns.append(f"  - {column}: {description}{fk_info}")
                 else:  # full
                     short = metadata.get('short_description', '')
                     long = metadata.get('long_description', '')
                     if len(long) > 150:
                         long = long[:150] + "..."
                     description = f"{short}. {long}"
-                    table_columns.append(f"  - {column}: {description}")
+                    # Check if this is a foreign key
+                    fk_info = ""
+                    field_key_check = f"{table}.{column}"
+                    if field_key_check in self.foreign_keys:
+                        fk_info = f" [FK -> {self.foreign_keys[field_key_check]}]"
+                    table_columns.append(f"  - {column}: {description}{fk_info}")
 
             context_lines.extend(table_columns[:10])  # Limit columns per table
 
