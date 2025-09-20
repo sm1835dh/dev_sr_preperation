@@ -230,25 +230,38 @@ class SchemaLinker:
                         fields_to_include[table] = []
                     fields_to_include[table].append(column)
 
-        # Generate context for each field
+        # Group by table for better organization
         for table, columns in fields_to_include.items():
+            context_lines.append(f"\nTable: {table}")
+            table_columns = []
+
             for column in columns:
                 field_key = f"{table}.{column}"
                 if field_key not in self.field_metadata:
+                    # Basic column info if no metadata
+                    table_columns.append(f"  - {column}")
                     continue
 
                 metadata = self.field_metadata[field_key]
 
                 if profile_type == 'minimal':
                     description = metadata.get('short_description', '')
+                    table_columns.append(f"  - {column}: {description}")
                 elif profile_type == 'maximal':
                     description = metadata.get('long_description', '')
+                    # Truncate long descriptions for cleaner context
+                    if len(description) > 200:
+                        description = description[:200] + "..."
+                    table_columns.append(f"  - {column}: {description}")
                 else:  # full
                     short = metadata.get('short_description', '')
                     long = metadata.get('long_description', '')
-                    description = f"{short} Details: {long}"
+                    if len(long) > 150:
+                        long = long[:150] + "..."
+                    description = f"{short}. {long}"
+                    table_columns.append(f"  - {column}: {description}")
 
-                context_lines.append(f"Field {field_key}: {description}")
+            context_lines.extend(table_columns[:10])  # Limit columns per table
 
         return "\n".join(context_lines)
 

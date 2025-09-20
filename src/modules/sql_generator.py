@@ -37,6 +37,23 @@ class SQLGenerator:
         self.few_shot_index = None
         self.examples_db = []
 
+        # Load enhanced few-shot examples
+        self._load_enhanced_examples()
+
+    def _load_enhanced_examples(self):
+        """Load enhanced few-shot examples from file"""
+        try:
+            examples_path = Path(__file__).parent.parent / 'data' / 'few_shot_examples.json'
+            if examples_path.exists():
+                with open(examples_path, 'r') as f:
+                    enhanced_examples = json.load(f)
+                self.build_few_shot_index(enhanced_examples)
+                logger.info(f"Loaded {len(enhanced_examples)} enhanced few-shot examples")
+            else:
+                logger.warning("No enhanced examples file found")
+        except Exception as e:
+            logger.error(f"Error loading enhanced examples: {e}")
+
     def build_few_shot_index(self, examples: List[Dict]):
         """
         Build FAISS index for few-shot example selection
@@ -156,22 +173,22 @@ class SQLGenerator:
 Database Schema:
 {schema_context}
 
-Generate a SQL query to answer this question: {question}
+Question: {question}
 
-Guidelines:
-1. Use only the tables and columns mentioned in the schema
-2. Pay attention to the column descriptions and sample values
-3. Use appropriate JOIN conditions when needed
-4. Include necessary WHERE clauses for filtering
-5. Use proper GROUP BY and ORDER BY when needed
+Instructions:
+- Generate ONLY a valid SQL query
+- Do not include explanations, assumptions, or notes
+- Use simple, direct approaches
+- Avoid unnecessary complexity
+- Return only the SQL statement
 
-SQL Query:"""
+SQL:"""
 
         try:
             response = self.llm_client.chat.completions.create(
                 model=self.config.AZURE_OPENAI_DEPLOYMENT,
                 messages=[
-                    {"role": "system", "content": "You are an expert SQL developer. Generate accurate SQL queries based on the schema and examples provided."},
+                    {"role": "system", "content": "You are an expert SQL developer. Return ONLY valid SQL queries without any explanations or markdown. Your response must be a single SQL statement that can be executed directly."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=temperature,
@@ -192,12 +209,52 @@ SQL Query:"""
         sql = re.sub(r'```sql\s*', '', sql)
         sql = re.sub(r'```\s*', '', sql)
 
+        # Extract SQL from explanatory text
+        # Look for patterns like "Query:", "SQL:", "SELECT..."
+        patterns = [
+            r'(?:Query|SQL):\s*(SELECT.*?)(?:\n\n|\n[A-Z]|$)',
+            r'(SELECT\s+.*?)(?:\n\n|\nNote|\nBased|\n[A-Z][a-z]|$)',
+            r'(?:Here.*?:|Following.*?:)?\s*(SELECT.*?)(?:\n\n|\n[A-Z]|$)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, sql, re.IGNORECASE | re.DOTALL)
+            if match:
+                sql = match.group(1).strip()
+                break
+
+        # Remove common explanation prefixes
+        prefixes_to_remove = [
+            r'^Based on.*?:',
+            r'^Given.*?:',
+            r'^Assuming.*?:',
+            r'^Here.*?:',
+            r'^The.*?:',
+            r'^\*\*.*?\*\*',
+            r'^Note:.*?(?=SELECT)',
+        ]
+
+        for prefix in prefixes_to_remove:
+            sql = re.sub(prefix, '', sql, flags=re.IGNORECASE | re.DOTALL)
+
+        # Remove trailing explanations
+        suffixes_to_remove = [
+            r';?\s*\*\*Note.*',
+            r';?\s*Note:.*',
+            r';?\s*-\s*Replace.*',
+            r';?\s*If.*',
+            r';?\s*The value.*',
+        ]
+
+        for suffix in suffixes_to_remove:
+            sql = re.sub(suffix, '', sql, flags=re.IGNORECASE | re.DOTALL)
+
         # Remove extra whitespace
         sql = re.sub(r'\s+', ' ', sql).strip()
 
-        # Ensure it ends with semicolon
-        if sql and not sql.endswith(';'):
-            sql += ';'
+        # Remove semicolon temporarily for validation
+        if sql.endswith(';'):
+            sql = sql[:-1].strip()
 
         return sql
 
