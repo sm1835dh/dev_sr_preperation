@@ -38,35 +38,60 @@ class SchemaLinker:
         self.table_relationships = {}  # Store table relationships
 
     def detect_foreign_keys(self, database_profile: Dict):
-        """Detect foreign key relationships based on column naming patterns"""
+        """Detect foreign key relationships from database profile"""
         tables = database_profile.get('tables', {})
-
-        # Common foreign key patterns
-        fk_patterns = ['_id', '_code', '_num', '_no', '_key']
 
         for table_name, table_data in tables.items():
             self.table_relationships[table_name] = set()
 
-            for col_name, col_data in table_data.get('columns', {}).items():
-                # Check if column name suggests a foreign key
-                for pattern in fk_patterns:
-                    if pattern in col_name.lower():
-                        # Try to find the referenced table
-                        potential_table = col_name.lower().replace(pattern, '')
+            # First, check for explicit foreign keys (from SQLite)
+            foreign_keys = table_data.get('foreign_keys', [])
+            for fk in foreign_keys:
+                from_col = fk.get('column')
+                ref_table = fk.get('referenced_table')
+                ref_col = fk.get('referenced_column')
 
-                        # Check if the potential table exists
-                        for other_table in tables.keys():
-                            if potential_table in other_table.lower() or other_table.lower() in potential_table:
-                                fk_key = f"{table_name}.{col_name}"
-                                ref_key = f"{other_table}.id"  # Assume 'id' as primary key
+                if from_col and ref_table and ref_col:
+                    fk_key = f"{table_name}.{from_col}"
+                    ref_key = f"{ref_table}.{ref_col}"
+                    self.foreign_keys[fk_key] = ref_key
+                    self.table_relationships[table_name].add(ref_table)
+                    self.table_relationships.setdefault(ref_table, set()).add(table_name)
 
-                                # Check if the referenced column exists
-                                if 'id' in tables[other_table].get('columns', {}):
-                                    self.foreign_keys[fk_key] = ref_key
-                                    self.table_relationships[table_name].add(other_table)
-                                    self.table_relationships.setdefault(other_table, set()).add(table_name)
+            # If no explicit foreign keys, try pattern matching
+            if not foreign_keys:
+                # Common foreign key patterns
+                fk_patterns = ['_id', '_code', '_num', '_no', '_key']
 
-        logger.info(f"Detected {len(self.foreign_keys)} potential foreign key relationships")
+                for col_name, col_data in table_data.get('columns', {}).items():
+                    # Check if column name suggests a foreign key
+                    for pattern in fk_patterns:
+                        if pattern in col_name.lower():
+                            # Try to find the referenced table
+                            potential_table = col_name.lower().replace(pattern, '')
+
+                            # Check if the potential table exists
+                            for other_table in tables.keys():
+                                if potential_table in other_table.lower() or other_table.lower() in potential_table:
+                                    # Check for primary key in the referenced table
+                                    other_columns = tables[other_table].get('columns', {})
+                                    pk_column = None
+                                    for other_col, other_col_data in other_columns.items():
+                                        if other_col_data.get('primary_key'):
+                                            pk_column = other_col
+                                            break
+
+                                    if not pk_column:
+                                        pk_column = 'id'  # Default assumption
+
+                                    if pk_column in other_columns:
+                                        fk_key = f"{table_name}.{col_name}"
+                                        ref_key = f"{other_table}.{pk_column}"
+                                        self.foreign_keys[fk_key] = ref_key
+                                        self.table_relationships[table_name].add(other_table)
+                                        self.table_relationships.setdefault(other_table, set()).add(table_name)
+
+        logger.info(f"Detected {len(self.foreign_keys)} foreign key relationships")
 
     def build_lsh_index(self, database_profile: Dict):
         """
@@ -80,9 +105,14 @@ class SchemaLinker:
             for col_name, col_data in table_data.get('columns', {}).items():
                 field_key = f"{table_name}.{col_name}"
 
-                # Store top values as samples
-                if 'top_values' in col_data:
+                # Store sample values
+                samples = []
+                if 'sample_values' in col_data:
+                    samples = col_data['sample_values']
+                elif 'top_values' in col_data:
                     samples = [v['value'] for v in col_data['top_values']]
+
+                if samples:
                     self.field_samples[field_key] = samples
 
                     # Create MinHash for field values
@@ -90,7 +120,10 @@ class SchemaLinker:
                     for value in samples:
                         m.update(str(value).encode('utf-8'))
 
-                    self.lsh_index.insert(field_key, m)
+                    try:
+                        self.lsh_index.insert(field_key, m)
+                    except:
+                        pass  # Handle duplicates gracefully
 
         logger.info(f"Built LSH index with {len(self.field_samples)} fields")
 

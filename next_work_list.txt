@@ -1,0 +1,157 @@
+# CHASE-SQL 논문 기반 개선 포인트 검토 리스트
+# BIRD Overall 3rd - 73.0% 성능 달성 방법론 분석
+
+## 1. Multi-Path Candidate Generation (다중 경로 후보 생성) 개선사항
+
+### 1.1 Divide-and-Conquer CoT (분할정복 방식)
+- [ ] 복잡한 쿼리를 sub-queries로 분해하는 방법론 구현
+- [ ] 단일 LLM 호출로 decompose → solve → assemble 프로세스 구현
+- [ ] Pseudo-SQL 쿼리 사용한 중간 단계 표현
+- [ ] 최종 쿼리 최적화 단계 추가 (redundant clauses 제거)
+
+### 1.2 Query Plan CoT (쿼리 실행 계획 방식)
+- [ ] EXPLAIN 명령어 결과를 human-readable 형식으로 변환
+- [ ] Database engine의 실행 단계를 미러링하는 추론 전략
+- [ ] 3단계 프로세스: 테이블 식별 → 연산 수행 → 결과 반환
+- [ ] 테이블 간 관계 추론에 특화된 프롬프트 설계
+
+### 1.3 Instance-Aware Synthetic Example Generation (인스턴스 인식 합성 예제)
+- [ ] 실시간 synthetic demonstration 생성 (test-time)
+- [ ] SQL 기능별 예제 생성 (Rf 가이드라인)
+- [ ] 필터링된 스키마 기반 예제 생성 (Rt 가이드라인)
+- [ ] BIRD SQL feature distribution 매칭
+- [ ] 다양성 확보를 위한 mixing 전략
+
+## 2. Selection Agent (선택 에이전트) - 핵심 개선사항
+
+### 2.1 Pairwise Binary Classification
+- [ ] 현재 self-consistency 방식을 pairwise comparison으로 교체
+- [ ] Binary classifier 훈련 (Gemini-1.5-Flash 사용)
+- [ ] LoRA adapter (rank=16) 적용
+- [ ] 3.8K training samples 생성 및 활용
+
+### 2.2 Selection Algorithm
+- [ ] 모든 candidate pairs에 대한 comparison matrix 구성
+- [ ] Cumulative score 기반 최종 선택
+- [ ] Schema union 활용한 효율적 비교
+- [ ] Order bias 방지를 위한 bidirectional comparison
+
+### 2.3 Fine-tuning 전략
+- [ ] 58.01% → 71.01% 성능 향상 재현
+- [ ] Training data: (Qu, Ci, Cj, Dij, yij) 튜플 형식
+- [ ] Execution result clustering 기반 레이블링
+
+## 3. Value Retrieval 개선
+
+### 3.1 LSH (Locality-Sensitive Hashing) 강화
+- [ ] Keywords extraction with few-shot examples
+- [ ] Syntactic similarity + semantic similarity 조합
+- [ ] Edit distance 기반 re-ranking
+- [ ] Typo-robust retrieval 메커니즘
+
+## 4. Query Fixer (쿼리 수정기)
+
+### 4.1 Self-reflection 방식
+- [ ] Syntax error details 활용한 수정
+- [ ] Empty result sets 피드백 처리
+- [ ] 최대 3회 iterative fixing (β=3)
+- [ ] Error-specific correction strategies
+
+## 5. 프롬프트 엔지니어링 최적화
+
+### 5.1 System Messages
+- [ ] "Return ONLY valid SQL queries without any explanations"
+- [ ] Evidence/hint 명확한 formatting
+- [ ] SQL generation principles 명시
+
+### 5.2 Temperature/Top-p 다양화
+- [ ] 6가지 configuration (T=0.0~0.5)
+- [ ] Candidate diversity vs quality 균형
+- [ ] Duplicate detection and removal
+
+## 6. 평가 방식 개선
+
+### 6.1 Execution-based Evaluation
+- [ ] Text comparison 대신 실행 결과 비교
+- [ ] Result set semantic equivalence checking
+- [ ] Partial match similarity scoring
+
+## 7. 현재 구현 대비 주요 차이점
+
+### 7.1 Missing Components
+- [ ] Divide-and-Conquer CoT (현재 미구현)
+- [ ] Query Plan CoT (현재 미구현)
+- [ ] Selection Agent with fine-tuning (현재 self-consistency 사용)
+- [ ] Pairwise comparison matrix (현재 majority voting)
+
+### 7.2 개선 가능 영역
+- [ ] Instance-aware synthetic examples (현재는 static few-shot)
+- [ ] Multi-path candidate generation (현재는 단일 temperature variation)
+- [ ] Schema union for comparison (현재는 full schema 사용)
+- [ ] Query fixer with self-reflection (현재는 simple retry)
+
+## 8. 구현 우선순위 (예상 성능 향상)
+
+### Phase 1: Selection Agent 구현 (+10-15%)
+1. Pairwise binary classifier 훈련
+2. Comparison matrix algorithm
+3. Fine-tuned Gemini-1.5-Flash 모델
+
+### Phase 2: Multi-path Generation (+5-10%)
+1. Divide-and-Conquer CoT
+2. Query Plan CoT
+3. 다양성 증대 전략
+
+### Phase 3: Instance-aware Examples (+3-5%)
+1. Test-time synthetic generation
+2. SQL feature matching
+3. Schema-specific examples
+
+### Phase 4: Additional Optimizations (+2-3%)
+1. Enhanced query fixer
+2. Improved value retrieval
+3. Prompt refinements
+
+## 9. 실험 및 검증 계획
+
+### 9.1 Component-wise Ablation
+- [ ] 각 component별 기여도 측정
+- [ ] Upper-bound vs achieved performance 분석
+- [ ] Generator diversity metrics
+
+### 9.2 Error Analysis
+- [ ] Selection agent failure cases (31.4% wrong gold, 50.3% wrong picking)
+- [ ] No correct candidate cases (6.7%)
+- [ ] Vague questions handling (15.1%)
+
+## 10. 기술적 구현 세부사항
+
+### 10.1 모델 설정
+- Gemini-1.5-Pro for generation
+- Gemini-1.5-Flash for selection (lower latency)
+- Claude-3.5-Sonnet alternative testing
+
+### 10.2 하이퍼파라미터
+- k=2 for pairwise comparison
+- β=3 for query fixing iterations
+- 10 epochs for selection agent training
+- LoRA rank=16
+
+## 예상 최종 성능
+- 현재: 51.7% (execution-based)
+- Phase 1 후: 61-66%
+- Phase 2 후: 66-71%
+- Phase 3 후: 69-74%
+- Phase 4 후: 71-76% (목표: CHASE-SQL 73.0% 수준)
+
+## 주요 인사이트
+1. Selection agent가 가장 큰 성능 향상 요인
+2. Multi-path generation으로 diversity 확보 필수
+3. Instance-aware examples로 schema understanding 향상
+4. Pairwise comparison이 self-consistency보다 우수
+
+## 다음 단계
+1. Selection agent training data 준비
+2. Pairwise comparison algorithm 구현
+3. Multi-path generators 개발
+4. 전체 시스템 통합 및 평가
