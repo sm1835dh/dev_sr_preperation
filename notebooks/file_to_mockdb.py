@@ -417,7 +417,7 @@ class PostgreSQLMockDB:
         
         # Read data file
         try:
-            df = pd.read_csv(data_file, encoding='utf-8')
+            df = pd.read_csv(data_file, encoding='utf-8', delimiter='\t')
             print(f"   Read {len(df)} records from file")
         except Exception as e:
             print(f"❌ Failed to read data file: {e}")

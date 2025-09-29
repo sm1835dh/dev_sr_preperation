@@ -1,3 +1,4 @@
+column_name	type	description
 display_category_major	varchar(1000)	웹사이트에 노출되는 제품의 대분류 카테고리명입니다. (예: 모바일, TV & 오디오, 가전)
 display_category_middle	varchar(1000)	웹사이트에 노출되는 제품의 중분류 카테고리명입니다. (예: 스마트폰, QLED, 비스포크)
 display_category_minor	varchar(1000)	웹사이트에 노출되는 제품의 소분류 카테고리명입니다. (예: Galaxy S, Neo QLED, 냉장고)
@@ -14,24 +15,21 @@ is_ai_subscription_eligible	varchar(1)	Galaxy AI와 같은 AI 관련 구독 서�
 is_smart_subscription_eligible	varchar(1)	스마트 기기 구독 서비스(삼성닷컴 구독) 가입 가능 여부를 나타냅니다. (True/False)
 is_galaxy_club_eligible	varchar(1)	갤럭시 클럽 가입 또는 혜택 적용 가능 여부를 나타냅니다. (True/False)
 is_installment_payment_available	varchar(1)	할부 결제 가능 여부를 나타냅니다. (True/False)
-is_visible	varchar(1)	현재 웹사이트에 해당 제품이 노출되는지 여부를 결정하는 값입니다. (True/False)
+product_detail_url	text	제품의 상세 페이지로 연결되는 전체 URL 주소입니다.
 channel_code	varchar(10)	판매 채널을 구분하는 코드입니다. (예: 온라인, B2B, 특정 프로모션)
 unique_selling_point	varchar	제품의 핵심 특장점을 요약한 문구 모음입니다. (예: 'Galaxy AI 탑재', '2억 화소 카메라')
-review_count	int4	해당 제품에 달린 리뷰의 총 개수입니다.
+review_count	numeric(10)	해당 제품에 달린 리뷰의 총 개수입니다.
 review_rating_score	numeric(5,2)	해당 제품의 평균 리뷰 별점입니다. (예: 4.8)
 standard_price	numeric(10)	할인이 적용되지 않은 정상 판매가입니다.
 member_price	numeric(10)	삼성닷컴 회원에게만 적용되는 할인가입니다.
 benefit_price	numeric(10)	즉시 할인, 쿠폰 등 모든 혜택이 적용된 최종 가격으로, '혜택가'에 해당합니다.
 review_text_collection	text	사용자들이 작성한 리뷰 텍스트 데이터의 모음입니다.
-display_classification_name	varchar	화면에 표시될 분류 체계 이름들의 집합입니다. (예: ["모바일", "스마트폰", "Galaxy S"])
 product_specification	jsonb	제품의 상세 기술 사양(스펙) 데이터입니다. (JSON 또는 구조화된 텍스트 형태)
 is_on_sale	text	현재 제품이 세일 또는 프로모션 중인지 여부를 나타냅니다. (True/False)
 web_coupon_discount_amount	numeric(10)	웹 쿠폰 적용 시 할인되는 금액입니다.
-stock_quantity	int4	판매 가능한 재고 수량입니다.
-category_rank_by_recommendation	int4	카테고리 내에서 추천순에 따른 제품 순위입니다.
-category_rank_by_sales_volume	int4	카테고리 내에서 판매량순에 따른 제품 순위입니다.
-category_rank_by_rating	int4	카테고리 내에서 평점순에 따른 제품 순위입니다.
+stock_quantity	numeric(10)	판매 가능한 재고 수량입니다.
 bundle_component_model_code	varchar	번들(패키지) 상품일 경우, 구성품 각각의 모델 코드 목록입니다.
-card_promotion_info	jsonb	특정 카드사 결제 시 적용되는 프로모션 정보입니다. (예: 삼성카드 5% 청구할인)
 site_code	varchar(10)	해당 상품이 판매되는 판매 채널에 대한 코드입니다. (예: B2C, FN)
 final_price	numeric(10)	모든 할인, 쿠폰, 카드사 혜택 등이 최종 반영된 실제 결제 예상 금액입니다.
+is_bispokle_goods	varchar(1)	해당 제품의 비스포크 상품 여부를 나타냅니다.
+is_bundle_product	varchar(1)	해당 제품의 번들 상품 여부를 나타냅니다.
