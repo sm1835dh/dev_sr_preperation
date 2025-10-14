@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  data-ingestion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rubicon-data-ingestion:latest
+    container_name: rubicon-data-ingestion
+    env_file:
+      - .env
+    environment:
+      # Override any environment variables if needed
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount metadata backup directory
+      - ./metadata:/app/metadata
+      # Mount logs directory (optional)
+      - ./logs:/app/logs
+    networks:
+      - rubicon-network
+    restart: unless-stopped
+    command: [
+      "--mode", "${MODE:-both}",
+      "--table", "${TABLE_NAME:-kt_merged_product_20251001}",
+      "--direct-collection", "${DIRECT_COLLECTION:-product_data_direct}",
+      "--metadata-collection", "${METADATA_COLLECTION:-synonyms_20251014}",
+      "--batch-size", "${BATCH_SIZE:-50}",
+      "--sample-size", "${SAMPLE_SIZE:-10000}"
+    ]
+
+  # Optional: Local MongoDB for testing
+  # Uncomment if you want to use local MongoDB instead of Cosmos DB
+  # mongodb:
+  #   image: mongo:7.0
+  #   container_name: rubicon-mongodb
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=admin
+  #     - MONGO_INITDB_ROOT_PASSWORD=password
+  #     - MONGO_INITDB_DATABASE=rubicon
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   networks:
+  #     - rubicon-network
+
+networks:
+  rubicon-network:
+    driver: bridge
+
+# volumes:
+#   mongodb_data:

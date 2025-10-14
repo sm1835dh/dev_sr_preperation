@@ -1,0 +1,16 @@
+# Database
+psycopg2-binary==2.9.9
+pymongo==4.6.1
+
+# Data processing
+pandas==2.2.0
+numpy==1.26.3
+
+# Azure OpenAI
+openai==1.10.0
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Optional: For better performance
+sqlalchemy==2.0.25
