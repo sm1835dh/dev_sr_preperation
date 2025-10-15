@@ -475,13 +475,13 @@ def main():
     parser.add_argument(
         '--direct-collection',
         type=str,
-        default='product_data_direct',
+        default='_product_data_direct',
         help='MongoDB collection name for direct PostgreSQL data transfer'
     )
     parser.add_argument(
         '--metadata-collection',
         type=str,
-        default='synonyms_20251014',
+        default='_synonyms_20251014',
         help='MongoDB collection name for metadata with OpenAI descriptions'
     )
     parser.add_argument(

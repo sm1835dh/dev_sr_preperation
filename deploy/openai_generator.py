@@ -33,10 +33,11 @@ class OpenAIMetadataGenerator:
             print(f"  - API Version: {api_version}")
             print(f"  - Deployment: {os.getenv('DEPLOYMENT_NAME')}")
 
+            # Initialize without proxies parameter for compatibility
             client = AzureOpenAI(
                 azure_endpoint=endpoint,
                 api_key=api_key,
-                api_version=api_version,
+                api_version=api_version
             )
             print(f"✅ Azure OpenAI 클라이언트 생성 성공")
             return client
