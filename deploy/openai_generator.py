@@ -163,7 +163,9 @@ class OpenAIMetadataGenerator:
                 if avg_length is not None:
                     type_specific_info += f"\n      - 평균 길이: {avg_length:.1f}"
 
-            if most_common and len(most_common) > 0:
+            if not isinstance(most_common, (list, tuple, dict)):
+                type_specific_info += "\n    - 가장 빈번한 값: N/A"
+            elif most_common and len(most_common) > 0:
                 type_specific_info += "\n    - 가장 빈번한 값:"
                 for value, count in list(most_common.items())[:5]:
                     display_value = value if len(str(value)) <= 100 else str(value)[:100] + "..."
@@ -233,7 +235,7 @@ class OpenAIMetadataGenerator:
                     },
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=500
+                max_completion_tokens=3000
             )
 
             return response.choices[0].message.content
