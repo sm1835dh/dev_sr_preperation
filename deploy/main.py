@@ -56,7 +56,8 @@ DEFAULT_SELECTED_COLUMNS = [
     'bundle_component_model_code',
     'site_code',
     'final_price',
-    'is_bispokle_goods',
+    'is_bispoke_goods', # v0.11에 잘못된 컬럼 이름 수정
+    # 'is_bespoke_goods', 
     'is_bundle_product',
     'category_rank_recommend',
     'category_rank_quantity',
@@ -65,7 +66,8 @@ DEFAULT_SELECTED_COLUMNS = [
     'total_sale_quantity',
     'event_info',
     'coupon_info',
-    'promotion_info'
+    'promotion_info',
+    'payment_benefit_info'
 ]
 
 
