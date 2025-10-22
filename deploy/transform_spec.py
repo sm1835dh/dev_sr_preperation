@@ -62,7 +62,62 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 기본 필터링 값
-DEFAULT_ALLOWED_DISP_NM1 = ['규격','사양','외관 사양','기본 사양','외관','기본사양','본체치수','주요사양','일반사양']
+DEFAULT_ALLOWED_DISP_NM1 = ['크기', '규격','사양','외관 사양','기본 사양','외관','기본사양','본체치수','주요사양','일반사양']
+
+# ============================================
+# 화이트리스트: disp_nm1 + disp_nm2 조합별 dimension_type 매핑
+# ============================================
+# 구조: {(disp_nm1, disp_nm2_pattern): dimension_type}
+# disp_nm2_pattern은 정확히 일치하거나 포함 여부로 확인
+
+DIMENSION_WHITELIST = {
+    # 크기 관련
+    ('크기', '본체'): 'product',  # 본체 크기 (width, height, depth 모두 파싱)
+    ('크기', '스탠드 포함'): 'product',  # 스탠드 포함 크기
+    ('크기', '스탠드포함'): 'product',  # 스탠드포함 크기
+    ('크기', '제품'): 'product',  # 제품 크기
+
+    # 규격 관련
+    ('규격', '본체'): 'product',
+    ('규격', '제품'): 'product',
+    ('규격', '크기'): 'product',
+
+    # 사양 관련
+    ('사양', '본체 크기'): 'product',
+    ('사양', '제품 크기'): 'product',
+    ('사양', '외형 크기'): 'product',
+
+    # 외관 사양
+    ('외관 사양', '본체'): 'product',
+    ('외관 사양', '크기'): 'product',
+
+    # 기본 사양
+    ('기본 사양', '크기'): 'product',
+    ('기본 사양', '본체'): 'product',
+
+    # 본체치수
+    ('본체치수', ''): 'product',  # disp_nm2가 비어있어도 처리
+}
+
+# 부분 매칭용 키워드 (disp_nm2에 포함되어 있으면 매칭)
+DIMENSION_WHITELIST_CONTAINS = {
+    '본체': 'product',
+    '제품': 'product',
+    '스탠드 포함': 'product',
+    '스탠드포함': 'product',
+}
+
+# 제외 키워드 (disp_nm2에 이 단어가 포함되어 있으면 파싱 안 함)
+DIMENSION_BLACKLIST_KEYWORDS = [
+    'gross',
+    'Gross',
+    'GROSS',
+    '패키지',
+    '포장',
+    '박스',
+    '케이스',
+    'Buckle Band'
+]
 
 def get_sqlalchemy_engine():
     """SQLAlchemy 엔진 생성"""
@@ -312,6 +367,83 @@ def save_parsed_data_to_table(engine, df_parsed, df_needs_check, source_table_na
 # 파싱 함수 정의
 # ============================================
 
+def is_whitelisted(disp_nm1, disp_nm2):
+    """
+    disp_nm1과 disp_nm2 조합이 화이트리스트에 있는지 확인
+    블랙리스트 키워드가 있으면 무조건 제외
+
+    Parameters:
+    -----------
+    disp_nm1 : str
+        첫 번째 분류명
+    disp_nm2 : str
+        두 번째 분류명
+
+    Returns:
+    --------
+    bool : 화이트리스트에 있으면 True, 없으면 False
+    """
+    if not disp_nm1:
+        return False
+
+    disp_nm2 = str(disp_nm2) if disp_nm2 else ''
+
+    # 0. 블랙리스트 체크 (최우선, 무조건 제외)
+    for blacklist_keyword in DIMENSION_BLACKLIST_KEYWORDS:
+        if blacklist_keyword in disp_nm2:
+            return False
+
+    # 1. 정확한 매칭 확인
+    if (disp_nm1, disp_nm2) in DIMENSION_WHITELIST:
+        return True
+
+    # 2. disp_nm1만 매칭되고 disp_nm2가 비어있는 경우
+    if (disp_nm1, '') in DIMENSION_WHITELIST and not disp_nm2:
+        return True
+
+    # 3. 부분 매칭 확인 (disp_nm2에 키워드 포함)
+    for keyword in DIMENSION_WHITELIST_CONTAINS:
+        if keyword in disp_nm2:
+            return True
+
+    return False
+
+def analyze_unparsed_patterns(df_unparsed):
+    """
+    파싱되지 않은 데이터의 disp_nm1, disp_nm2 패턴 분석
+    화이트리스트에 추가할 후보를 찾기 위한 함수
+
+    Parameters:
+    -----------
+    df_unparsed : DataFrame
+        파싱되지 않은 데이터
+
+    Returns:
+    --------
+    DataFrame : (disp_nm1, disp_nm2) 조합별 개수
+    """
+    if len(df_unparsed) == 0:
+        print("파싱되지 않은 데이터가 없습니다.")
+        return pd.DataFrame()
+
+    print("\n" + "="*80)
+    print("📊 파싱되지 않은 데이터의 disp_nm1 + disp_nm2 패턴 분석")
+    print("="*80)
+
+    # disp_nm1, disp_nm2 조합별 카운트
+    pattern_counts = df_unparsed.groupby(['disp_nm1', 'disp_nm2']).size().reset_index(name='count')
+    pattern_counts = pattern_counts.sort_values('count', ascending=False)
+
+    print("\n상위 20개 패턴:")
+    print(pattern_counts.head(20).to_string(index=False))
+
+    print("\n💡 화이트리스트 추가 예시:")
+    print("="*80)
+    for _, row in pattern_counts.head(10).iterrows():
+        print(f"    ('{row['disp_nm1']}', '{row['disp_nm2']}'): 'product',  # {row['count']}개")
+
+    return pattern_counts
+
 def identify_dimension_type(text, disp_nm3=None):
     """
     텍스트에서 dimension 타입을 식별
@@ -332,7 +464,7 @@ def identify_dimension_type(text, disp_nm3=None):
     elif any(keyword in text_lower for keyword in ['두께', '깊이', 'd']):
         return 'depth'
     # Width 키워드
-    elif any(keyword in text_lower for keyword in ['가로', '폭', 'w']):
+    elif any(keyword in text_lower for keyword in ['너비', '가로', '폭', 'w']):
         return 'width'
     # Height 키워드
     elif any(keyword in text_lower for keyword in ['세로', '높이', 'h']):
@@ -342,20 +474,46 @@ def identify_dimension_type(text, disp_nm3=None):
 
 def parse_dimensions_advanced(row):
     """
-    disp_nm2에 따라 value를 파싱하는 함수 (확장 버전)
+    화이트리스트 기반 dimension 파싱 함수
+
+    1. disp_nm1 + disp_nm2 조합이 화이트리스트에 있는지 확인
+    2. 화이트리스트에 있으면 value를 파싱
+    3. 화이트리스트에 없으면 파싱하지 않음 (정확성 우선)
     """
     parsed_rows = []
     value = str(row['value'])
-    disp_nm2 = str(row['disp_nm2'])
+    disp_nm1 = str(row.get('disp_nm1', ''))
+    disp_nm2 = str(row.get('disp_nm2', ''))
     disp_nm3 = str(row.get('disp_nm3', ''))
 
+    # ============================================
+    # 화이트리스트 체크 (최우선)
+    # ============================================
+    if not is_whitelisted(disp_nm1, disp_nm2):
+        # 화이트리스트에 없으면 파싱하지 않음
+        return parsed_rows, False, False
+
+    # ============================================
+    # 전처리: 제외 조건 체크 및 값 추출
+    # ============================================
     # 제외 조건: 각도 조정 관련 텍스트가 포함된 경우
     if any(keyword in value.lower() for keyword in ['각도 조정', '각도조정']):
         return parsed_rows, False, False
-    
-    # 키보드 세트의 경우 첫 번째 제품만 파싱 (키보드:, 마우스:, 리시버 등이 여러개 있는 경우)
+
+    # 복수 개의 값이 있는 경우 첫 번째 값만 추출
+    # 예: "TOP/BOTTOM : 1460.0(L) x 24.6(W) x 17.7(H), LEFT/RIGHT : 837.4(L) x 24.6(W) x 17.7(H) mm"
+    # → "TOP/BOTTOM : 1460.0(L) x 24.6(W) x 17.7(H)"
+    if ':' in value and ',' in value:
+        # 콜론과 콤마가 있으면 첫 번째 그룹만 추출
+        first_part = value.split(',')[0].strip()
+        # "TOP/BOTTOM : 값" 형태에서 값 부분만 추출
+        if ':' in first_part:
+            value = first_part.split(':', 1)[1].strip()
+        else:
+            value = first_part
+
+    # 키보드 세트의 경우 첫 번째 제품만 파싱
     if '키보드' in value and ':' in value:
-        # "키보드 : 440(L)*156(W)*24(H)mm마우스 : ..." 형태에서 키보드 부분만 추출
         keyboard_match = re.search(r'키보드\s*:\s*([^가-힣]*?)(?:마우스|리시버|$)', value)
         if keyboard_match:
             value = keyboard_match.group(1).strip()
@@ -412,37 +570,90 @@ def parse_dimensions_advanced(row):
         if parsed_rows:
             return parsed_rows, True, False
     
-    # 패턴 2: "가로x높이x깊이" 텍스트가 있는 경우 (예: "820 x 56 x103.5 mm(가로x높이x깊이)")
-    if '가로' in value and '높이' in value and '깊이' in value:
-        nums = re.findall(r'([0-9,]+(?:\.[0-9]+)?)', value)
-        if len(nums) >= 3:
-            base_row = row.to_dict()
+    # 패턴 2: 한글 키워드로 순서 명시 (우선순위 높음)
+    # value 또는 disp_nm2에서 키워드 확인
+    # 예: disp_nm2="본체 크기 (너비x두께, mm)", value="7.0 x 2.6"
 
+    combined_text = value + ' ' + disp_nm2  # 두 필드를 합쳐서 키워드 검색
+
+    # 숫자 추출
+    nums = re.findall(r'([0-9,]+(?:\.[0-9]+)?)', value)
+    base_row = row.to_dict()
+
+    # 키워드 순서 파싱: disp_nm2에서 키워드 순서대로 추출
+    # 예: "가로x세로x두께" → ['가로', '세로', '두께']
+    keyword_pattern = r'(가로|세로|너비|폭|높이|두께|깊이|길이)'
+    keyword_order = re.findall(keyword_pattern, disp_nm2)
+
+    # 키워드가 2개 이상 있고, 숫자도 충분히 있으면 순서대로 매핑
+    if len(keyword_order) >= 2 and len(nums) >= len(keyword_order):
+        # 한글 키워드 → dimension_type 매핑 (기본값)
+        keyword_map = {
+            '가로': 'width',
+            '너비': 'width',
+            '폭': 'width',
+            '세로': 'height',   # 기본: 세로=height
+            '높이': 'height',
+            '두께': 'depth',
+            '깊이': 'depth',
+            '길이': 'depth',
+        }
+
+        # 예외 처리: 특정 조합에서 세로의 의미가 달라짐
+        # "가로x높이x세로" 패턴 → 세로를 depth로 해석
+        if '높이' in keyword_order and '세로' in keyword_order:
+            # 높이와 세로가 함께 있으면, 세로=depth
+            keyword_map['세로'] = 'depth'
+
+        try:
+            for i, keyword in enumerate(keyword_order):
+                if i < len(nums):
+                    dim_type = keyword_map.get(keyword)
+                    if dim_type:
+                        parsed_rows.append({
+                            **base_row,
+                            'dimension_type': dim_type,
+                            'parsed_value': float(nums[i].replace(',', '')),
+                            'needs_check': False
+                        })
+
+            if parsed_rows:
+                return parsed_rows, True, False
+        except ValueError:
+            pass
+
+    # 키워드 순서 파싱 실패 시, 기존 로직 사용
+
+    # 2-1. 3개 값: 가로x높이x깊이 (명시적)
+    if '가로' in combined_text and '높이' in combined_text and '깊이' in combined_text and len(nums) >= 3:
+        try:
+            parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
+            parsed_rows.append({**base_row, 'dimension_type': 'height', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
+            parsed_rows.append({**base_row, 'dimension_type': 'depth', 'parsed_value': float(nums[2].replace(',', '')), 'needs_check': False})
+            return parsed_rows, True, False
+        except ValueError:
+            pass
+
+    # 2-2. 2개 값: 너비x두께, 가로x두께, 폭x두께, 가로x깊이 등
+    if ('너비' in combined_text or '가로' in combined_text or '폭' in combined_text) and ('두께' in combined_text or '깊이' in combined_text):
+        # 높이 키워드가 없어야 함 (우선순위 구분)
+        if '높이' not in combined_text and len(nums) >= 2:
             try:
-                # 가로 (width)
-                row1 = base_row.copy()
-                row1['dimension_type'] = 'width'
-                row1['parsed_value'] = float(nums[0].replace(',', ''))
-                row1['needs_check'] = False
-                parsed_rows.append(row1)
-
-                # 높이 (height)
-                row2 = base_row.copy()
-                row2['dimension_type'] = 'height'
-                row2['parsed_value'] = float(nums[1].replace(',', ''))
-                row2['needs_check'] = False
-                parsed_rows.append(row2)
-
-                # 깊이 (depth)
-                row3 = base_row.copy()
-                row3['dimension_type'] = 'depth'
-                row3['parsed_value'] = float(nums[2].replace(',', ''))
-                row3['needs_check'] = False
-                parsed_rows.append(row3)
-
+                parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
+                # 두께/깊이는 depth
+                parsed_rows.append({**base_row, 'dimension_type': 'depth', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
                 return parsed_rows, True, False
             except ValueError:
                 pass
+
+    # 2-3. 2개 값: 너비x높이, 가로x높이
+    if ('너비' in combined_text or '가로' in combined_text or '폭' in combined_text) and '높이' in combined_text and len(nums) >= 2:
+        try:
+            parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
+            parsed_rows.append({**base_row, 'dimension_type': 'height', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
+            return parsed_rows, True, False
+        except ValueError:
+            pass
     
     # 패턴 3: WxHxD 형식 (x로 구분, 단위 명시 없음) (예: "180 x 70 x 72 mm", "223 x 96.5 x 94 mm")
     wxhxd_match = re.search(r'([0-9,]+(?:\.[0-9]+)?)\s*[xX×]\s*([0-9,]+(?:\.[0-9]+)?)\s*[xX×]\s*([0-9,]+(?:\.[0-9]+)?)', value)
@@ -658,10 +869,8 @@ def print_parsing_results(df_parsed, df_parsed_needs_check, df_unparsed):
         available_cols = [col for col in display_cols if col in df_unparsed.columns]
         print(df_unparsed[available_cols].head(20).to_string())
 
-        # 파싱 실패 패턴 분석
-        print("\n\n❌ 파싱 실패 패턴 분석 (disp_nm2별 개수):")
-        print("-" * 80)
-        print(df_unparsed['disp_nm2'].value_counts().head(10))
+        # 파싱 실패 패턴 분석 (화이트리스트에 추가할 후보 찾기)
+        analyze_unparsed_patterns(df_unparsed)
     else:
         print("\n\n모든 데이터가 성공적으로 파싱되었습니다!")
 
