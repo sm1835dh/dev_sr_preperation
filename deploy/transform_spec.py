@@ -2,22 +2,33 @@
 # -*- coding: utf-8 -*-
 """
 ================================================================================
-PostgreSQL 스펙 데이터 변환 파이프라인 (Spec Data Transformation Pipeline)
+PostgreSQL 스펙 데이터 변환 파이프라인 - 검증 규칙 기반 (Validation Rule Based)
 ================================================================================
 
-이 스크립트는 PostgreSQL 테이블의 스펙 데이터를 읽어서 dimension (width, height, depth)
-정보를 파싱하고 변환하여 새로운 테이블에 저장합니다.
+이 스크립트는 검증 규칙 테이블(staging)을 기반으로 PostgreSQL 테이블의 스펙 데이터에서
+dimension (width, height, depth) 정보를 파싱하고 변환합니다.
+
+테이블 구조:
+-----------
+1. kt_spec_validation_table_20251021_staging: 검증 규칙 테이블
+   - is_target=true인 레코드만 처리
+   - is_completed: 파싱 완료 여부
+
+2. kt_spec_validation_table_20251021: 소스 데이터 테이블
+   - 실제 스펙 데이터 포함
+
+3. kt_spec_validation_table_20251021_mod: 파싱 결과 테이블
+   - target_disp_nm2: 사용자 정의 명칭
+   - dimension_type: ['depth', 'height', 'width'] 형식의 리스트
+   - is_target, is_completed: 모두 true로 설정
 
 사용법:
 ------
-1. 기본 실행 (대화형 모드):
+1. 기본 실행:
    python transform_spec.py
 
-2. 명령행 인자를 통한 실행:
-   python transform_spec.py --source-table test_spec_01 --target-table test_spec_02 --truncate
-
-3. 필터링 없이 전체 데이터 처리:
-   python transform_spec.py --source-table test_spec_01 --target-table test_spec_02 --no-filter
+2. mod 테이블 데이터 유지하며 실행:
+   python transform_spec.py --no-truncate
 
 필수 환경 변수 (.env 파일에 설정):
 --------------------------------
@@ -29,23 +40,11 @@ PG_PASSWORD=your_password
 
 주요 기능:
 ---------
-1. 소스 테이블에서 데이터 로드
-2. disp_nm1 필드로 데이터 필터링 (선택적)
-3. 다양한 형식의 dimension 데이터 파싱:
-   - W269 x D375 x H269 mm
-   - 276(W) x 327(H) x 293(D) mm
-   - 820 x 56 x103.5 mm(가로x높이x깊이)
-   - 180 x 70 x 72 mm (단위 명시 없음)
-   - 단일 값 (disp_nm2에서 타입 추론)
-4. 파싱 결과를 새 테이블에 저장
-
-출력 테이블 스키마:
------------------
-- 소스 테이블의 모든 컬럼 +
-- dimension_type: 'width', 'height', 'depth' 중 하나
-- parsed_value: 파싱된 수치 값
-- needs_check: 검증이 필요한 데이터 플래그
-- created_at: 생성 시각
+1. staging 테이블에서 is_target=true인 검증 규칙 로드
+2. 소스 테이블에서 매칭되는 데이터 조회
+3. 다양한 형식의 dimension 데이터 파싱
+4. mod 테이블에 파싱 결과 저장
+5. staging 테이블의 is_completed 업데이트
 
 ================================================================================
 """
@@ -55,69 +54,16 @@ import sys
 import argparse
 import re
 import pandas as pd
-from sqlalchemy import create_engine, text, inspect
+from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
 # .env 파일 로드
 load_dotenv()
 
-# 기본 필터링 값
-DEFAULT_ALLOWED_DISP_NM1 = ['크기', '규격','사양','외관 사양','기본 사양','외관','기본사양','본체치수','주요사양','일반사양']
-
-# ============================================
-# 화이트리스트: disp_nm1 + disp_nm2 조합별 dimension_type 매핑
-# ============================================
-# 구조: {(disp_nm1, disp_nm2_pattern): dimension_type}
-# disp_nm2_pattern은 정확히 일치하거나 포함 여부로 확인
-
-DIMENSION_WHITELIST = {
-    # 크기 관련
-    ('크기', '본체'): 'product',  # 본체 크기 (width, height, depth 모두 파싱)
-    ('크기', '스탠드 포함'): 'product',  # 스탠드 포함 크기
-    ('크기', '스탠드포함'): 'product',  # 스탠드포함 크기
-    ('크기', '제품'): 'product',  # 제품 크기
-
-    # 규격 관련
-    ('규격', '본체'): 'product',
-    ('규격', '제품'): 'product',
-    ('규격', '크기'): 'product',
-
-    # 사양 관련
-    ('사양', '본체 크기'): 'product',
-    ('사양', '제품 크기'): 'product',
-    ('사양', '외형 크기'): 'product',
-
-    # 외관 사양
-    ('외관 사양', '본체'): 'product',
-    ('외관 사양', '크기'): 'product',
-
-    # 기본 사양
-    ('기본 사양', '크기'): 'product',
-    ('기본 사양', '본체'): 'product',
-
-    # 본체치수
-    ('본체치수', ''): 'product',  # disp_nm2가 비어있어도 처리
-}
-
-# 부분 매칭용 키워드 (disp_nm2에 포함되어 있으면 매칭)
-DIMENSION_WHITELIST_CONTAINS = {
-    '본체': 'product',
-    '제품': 'product',
-    '스탠드 포함': 'product',
-    '스탠드포함': 'product',
-}
-
-# 제외 키워드 (disp_nm2에 이 단어가 포함되어 있으면 파싱 안 함)
-DIMENSION_BLACKLIST_KEYWORDS = [
-    'gross',
-    'Gross',
-    'GROSS',
-    '패키지',
-    '포장',
-    '박스',
-    '케이스',
-    'Buckle Band'
-]
+# 테이블 이름 정의
+STAGING_TABLE = 'kt_spec_validation_table_20251021_staging'
+SOURCE_TABLE = 'kt_spec_validation_table_20251021'
+MOD_TABLE = 'kt_spec_validation_table_20251021_mod'
 
 def get_sqlalchemy_engine():
     """SQLAlchemy 엔진 생성"""
@@ -130,140 +76,82 @@ def get_sqlalchemy_engine():
         print(f"❌ SQLAlchemy 엔진 생성 실패: {e}")
         return None
 
-def load_data_from_table(engine, table_name, allowed_disp_nm1):
+def load_validation_rules(engine):
     """
-    PostgreSQL 테이블에서 데이터 로드
-    
+    staging 테이블에서 is_target=true인 validation 규칙 로드
+
     Parameters:
     - engine: SQLAlchemy engine
-    - table_name: 소스 테이블명
-    - allowed_disp_nm1: 필터링할 disp_nm1 리스트
-    
+
     Returns:
-    - DataFrame
+    - DataFrame with validation rules
     """
     try:
-        # 전체 데이터 로드
-        query = f"SELECT * FROM {table_name}"
+        query = f"""
+        SELECT disp_lv1, disp_lv2, disp_lv3, disp_nm1, disp_nm2,
+               target_disp_nm2, dimension_type, is_target, is_completed
+        FROM {STAGING_TABLE}
+        WHERE is_target = true AND (is_completed = false OR is_completed IS NULL)
+        """
         df = pd.read_sql(query, engine)
-        print(f"✅ 테이블 '{table_name}'에서 {len(df)}개 행 로드 완료")
-        
-        # allowed_disp_nm1로 필터링
-        if allowed_disp_nm1 and len(allowed_disp_nm1) > 0:
-            df_filtered = df[df['disp_nm1'].isin(allowed_disp_nm1)]
-            print(f"✅ allowed_disp_nm1로 필터링: {len(df_filtered)}개 행")
+        print(f"✅ 검증 규칙 {len(df)}개 로드 완료 (is_target=true, is_completed=false)")
+        return df
+    except Exception as e:
+        print(f"❌ 검증 규칙 로드 실패: {e}")
+        return None
+
+def load_data_with_validation_rules(engine, validation_rules_df):
+    """
+    validation 규칙에 매칭되는 데이터를 소스 테이블에서 로드
+
+    Parameters:
+    - engine: SQLAlchemy engine
+    - validation_rules_df: 검증 규칙 DataFrame
+
+    Returns:
+    - DataFrame with matched data and validation rules
+    """
+    try:
+        all_data = []
+
+        for _, rule in validation_rules_df.iterrows():
+            # NULL 값 처리
+            conditions = []
+            params = {}
+
+            for idx, col in enumerate(['disp_lv1', 'disp_lv2', 'disp_lv3', 'disp_nm1', 'disp_nm2']):
+                if pd.notna(rule[col]):
+                    conditions.append(f"{col} = :param_{idx}")
+                    params[f'param_{idx}'] = rule[col]
+                else:
+                    conditions.append(f"{col} IS NULL")
+
+            where_clause = " AND ".join(conditions)
+            query = text(f"SELECT * FROM {SOURCE_TABLE} WHERE {where_clause}")
+
+            df_part = pd.read_sql(query, engine, params=params)
+
+            # validation 규칙 정보 추가
+            df_part['target_disp_nm2'] = rule['target_disp_nm2']
+            df_part['validation_rule_id'] = f"{rule['disp_lv1']}|{rule['disp_lv2']}|{rule['disp_lv3']}|{rule['disp_nm1']}|{rule['disp_nm2']}"
+
+            all_data.append(df_part)
+
+        if all_data:
+            df_combined = pd.concat(all_data, ignore_index=True)
+            print(f"✅ 검증 규칙에 매칭되는 {len(df_combined)}개 데이터 로드 완료")
+            return df_combined
         else:
-            df_filtered = df
-            print(f"⚠️  필터링 없이 전체 데이터 사용")
-        
-        return df_filtered
+            print("⚠️ 매칭되는 데이터가 없습니다.")
+            return pd.DataFrame()
+
     except Exception as e:
         print(f"❌ 데이터 로드 실패: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
-def get_table_schema(engine, source_table_name):
-    """
-    소스 테이블의 스키마를 읽어옴
-    
-    Parameters:
-    - engine: SQLAlchemy engine
-    - source_table_name: 소스 테이블명
-    
-    Returns:
-    - 컬럼 정보 딕셔너리 리스트
-    """
-    try:
-        inspector = inspect(engine)
-        columns = inspector.get_columns(source_table_name)
-        print(f"✅ 소스 테이블 '{source_table_name}' 스키마 읽기 완료 ({len(columns)}개 컬럼)")
-        return columns
-    except Exception as e:
-        print(f"❌ 스키마 읽기 실패: {e}")
-        return None
 
-def map_sqlalchemy_type_to_postgres(column_type):
-    """
-    SQLAlchemy 타입을 PostgreSQL 타입으로 변환
-    """
-    type_str = str(column_type)
-    
-    # 일반적인 타입 매핑
-    if 'INTEGER' in type_str or 'BIGINT' in type_str or 'SMALLINT' in type_str:
-        return 'INTEGER'
-    elif 'SERIAL' in type_str or 'BIGSERIAL' in type_str:
-        return 'SERIAL'
-    elif 'VARCHAR' in type_str:
-        # VARCHAR(길이) 추출
-        return type_str.replace('VARCHAR', 'VARCHAR')
-    elif 'TEXT' in type_str:
-        return 'TEXT'
-    elif 'BOOLEAN' in type_str or 'BOOL' in type_str:
-        return 'BOOLEAN'
-    elif 'TIMESTAMP' in type_str:
-        return 'TIMESTAMP'
-    elif 'DATE' in type_str:
-        return 'DATE'
-    elif 'NUMERIC' in type_str or 'DECIMAL' in type_str:
-        return type_str.replace('NUMERIC', 'NUMERIC')
-    elif 'FLOAT' in type_str or 'REAL' in type_str or 'DOUBLE' in type_str:
-        return 'DOUBLE PRECISION'
-    else:
-        # 기본값
-        return 'TEXT'
-
-def create_parsed_table_from_source(engine, source_table_name, target_table_name):
-    """
-    소스 테이블의 스키마를 기반으로 파싱된 데이터를 저장할 테이블 생성
-    dimension_type과 parsed_value 컬럼 추가
-    
-    Parameters:
-    - engine: SQLAlchemy engine
-    - source_table_name: 소스 테이블명
-    - target_table_name: 생성할 테이블명
-    """
-    # 소스 테이블 스키마 읽기
-    columns = get_table_schema(engine, source_table_name)
-    if columns is None:
-        return False
-    
-    # CREATE TABLE 쿼리 생성
-    column_definitions = []
-    
-    for col in columns:
-        col_name = col['name']
-        col_type = map_sqlalchemy_type_to_postgres(col['type'])
-        nullable = "NULL" if col['nullable'] else "NOT NULL"
-        
-        # PRIMARY KEY나 SERIAL 타입은 제거 (새 테이블에서는 id를 새로 만들 것)
-        if col.get('autoincrement') or 'primary_key' in str(col).lower():
-            continue
-            
-        column_definitions.append(f"{col_name} {col_type}")
-    
-    # dimension_type과 parsed_value 추가
-    column_definitions.append("dimension_type TEXT")
-    column_definitions.append("parsed_value NUMERIC")
-    column_definitions.append("needs_check BOOLEAN")
-    
-    # CREATE TABLE 쿼리
-    create_table_query = f"""
-    CREATE TABLE IF NOT EXISTS {target_table_name} (
-        id SERIAL PRIMARY KEY,
-        {', '.join(column_definitions)},
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """
-    
-    try:
-        with engine.connect() as conn:
-            conn.execute(text(create_table_query))
-            conn.commit()
-        print(f"✅ 테이블 '{target_table_name}' 생성/확인 완료")
-        print(f"   추가된 컬럼: dimension_type, parsed_value, needs_check")
-        return True
-    except Exception as e:
-        print(f"❌ 테이블 생성 실패: {e}")
-        return False
 
 def truncate_table(engine, table_name):
     """
@@ -283,168 +171,136 @@ def truncate_table(engine, table_name):
         print(f"❌ 데이터 삭제 실패: {e}")
         return False
 
-def save_parsed_data_to_table(engine, df_parsed, df_needs_check, source_table_name, target_table_name, truncate_before_insert=False):
-    """
-    파싱된 데이터를 PostgreSQL 테이블에 저장
-    소스 테이블의 모든 컬럼 + dimension_type, parsed_value, needs_check 저장
-    
-    Parameters:
-    - engine: SQLAlchemy engine
-    - df_parsed: 파싱 성공한 확실한 데이터
-    - df_needs_check: 파싱 성공했지만 체크가 필요한 데이터
-    - source_table_name: 소스 테이블명
-    - target_table_name: 대상 테이블명
-    - truncate_before_insert: True이면 기존 데이터 삭제
-    
-    Returns:
-    - 성공 여부
-    """
-    try:
-        # 테이블 생성
-        if not create_parsed_table_from_source(engine, source_table_name, target_table_name):
-            return False
-        
-        # 기존 데이터 삭제 옵션
-        if truncate_before_insert:
-            if not truncate_table(engine, target_table_name):
-                return False
-        
-        # 두 DataFrame 합치기
-        df_all = pd.DataFrame()
-        
-        if len(df_parsed) > 0:
-            df_parsed_copy = df_parsed.copy()
-            df_parsed_copy['needs_check'] = False
-            df_all = pd.concat([df_all, df_parsed_copy], ignore_index=True)
-        
-        if len(df_needs_check) > 0:
-            df_needs_check_copy = df_needs_check.copy()
-            df_needs_check_copy['needs_check'] = True
-            df_all = pd.concat([df_all, df_needs_check_copy], ignore_index=True)
-        
-        if len(df_all) == 0:
-            print("⚠️  저장할 데이터가 없습니다.")
-            return True
-        
-        # dimension_type과 parsed_value가 있는지 확인
-        if 'dimension_type' not in df_all.columns or 'parsed_value' not in df_all.columns:
-            print("❌ dimension_type 또는 parsed_value 컬럼이 없습니다.")
-            return False
-        
-        # 소스 테이블의 컬럼 정보 가져오기
-        source_columns = get_table_schema(engine, source_table_name)
-        if source_columns is None:
-            return False
-        
-        # 소스 컬럼명 리스트
-        source_column_names = [col['name'] for col in source_columns if not col.get('autoincrement')]
-        
-        # 저장할 DataFrame 구성: 소스의 모든 컬럼 + dimension_type, parsed_value, needs_check
-        df_to_save = pd.DataFrame()
-        
-        # 소스 테이블의 모든 컬럼 복사
-        for col_name in source_column_names:
-            if col_name in df_all.columns:
-                df_to_save[col_name] = df_all[col_name]
-        
-        # 새로운 컬럼 추가
-        df_to_save['dimension_type'] = df_all['dimension_type']
-        df_to_save['parsed_value'] = df_all['parsed_value']
-        df_to_save['needs_check'] = df_all['needs_check']
-        
-        # 데이터 저장
-        df_to_save.to_sql(target_table_name, engine, if_exists='append', index=False)
-        print(f"✅ 테이블 '{target_table_name}'에 {len(df_to_save)}개 행 저장 완료")
-        return True
-        
-    except Exception as e:
-        print(f"❌ 데이터 저장 실패: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
 
 # ============================================
 # 파싱 함수 정의
 # ============================================
 
-def is_whitelisted(disp_nm1, disp_nm2):
+def update_staging_table(engine, validation_rules_df, parsed_results, dimension_summaries):
     """
-    disp_nm1과 disp_nm2 조합이 화이트리스트에 있는지 확인
-    블랙리스트 키워드가 있으면 무조건 제외
+    staging 테이블의 is_completed 값과 dimension_type 업데이트
 
     Parameters:
-    -----------
-    disp_nm1 : str
-        첫 번째 분류명
-    disp_nm2 : str
-        두 번째 분류명
-
-    Returns:
-    --------
-    bool : 화이트리스트에 있으면 True, 없으면 False
+    - engine: SQLAlchemy engine
+    - validation_rules_df: 처리한 검증 규칙
+    - parsed_results: 파싱 결과 딕셔너리 {validation_rule_id: success}
+    - dimension_summaries: {validation_rule_id: ['depth', 'width', ...]}
     """
-    if not disp_nm1:
+    try:
+        with engine.begin() as conn:
+            for _, rule in validation_rules_df.iterrows():
+                rule_id = f"{rule['disp_lv1']}|{rule['disp_lv2']}|{rule['disp_lv3']}|{rule['disp_nm1']}|{rule['disp_nm2']}"
+
+                if rule_id in parsed_results and parsed_results[rule_id]:
+                    # dimension_type 리스트 가져오기
+                    dimension_list = dimension_summaries.get(rule_id, [])
+                    dimension_str = str(dimension_list) if dimension_list else None
+
+                    # 파싱 성공한 경우 is_completed와 dimension_type 업데이트
+                    conditions = []
+                    params = {}
+
+                    for idx, col in enumerate(['disp_lv1', 'disp_lv2', 'disp_lv3', 'disp_nm1', 'disp_nm2']):
+                        if pd.notna(rule[col]):
+                            conditions.append(f"{col} = :param_{idx}")
+                            params[f'param_{idx}'] = rule[col]
+                        else:
+                            conditions.append(f"{col} IS NULL")
+
+                    where_clause = " AND ".join(conditions)
+
+                    if dimension_str:
+                        params['dimension_type'] = dimension_str
+                        update_query = text(f"""
+                            UPDATE {STAGING_TABLE}
+                            SET is_completed = true,
+                                dimension_type = :dimension_type
+                            WHERE {where_clause}
+                        """)
+                    else:
+                        update_query = text(f"""
+                            UPDATE {STAGING_TABLE}
+                            SET is_completed = true
+                            WHERE {where_clause}
+                        """)
+
+                    conn.execute(update_query, params)
+
+        print(f"✅ Staging 테이블 업데이트 완료 ({len([v for v in parsed_results.values() if v])}개 규칙 완료)")
+        return True
+
+    except Exception as e:
+        print(f"❌ Staging 테이블 업데이트 실패: {e}")
         return False
 
-    disp_nm2 = str(disp_nm2) if disp_nm2 else ''
-
-    # 0. 블랙리스트 체크 (최우선, 무조건 제외)
-    for blacklist_keyword in DIMENSION_BLACKLIST_KEYWORDS:
-        if blacklist_keyword in disp_nm2:
-            return False
-
-    # 1. 정확한 매칭 확인
-    if (disp_nm1, disp_nm2) in DIMENSION_WHITELIST:
-        return True
-
-    # 2. disp_nm1만 매칭되고 disp_nm2가 비어있는 경우
-    if (disp_nm1, '') in DIMENSION_WHITELIST and not disp_nm2:
-        return True
-
-    # 3. 부분 매칭 확인 (disp_nm2에 키워드 포함)
-    for keyword in DIMENSION_WHITELIST_CONTAINS:
-        if keyword in disp_nm2:
-            return True
-
-    return False
-
-def analyze_unparsed_patterns(df_unparsed):
+def save_to_mod_table(engine, df_parsed):
     """
-    파싱되지 않은 데이터의 disp_nm1, disp_nm2 패턴 분석
-    화이트리스트에 추가할 후보를 찾기 위한 함수
+    파싱 결과를 mod 테이블에 저장
 
     Parameters:
-    -----------
-    df_unparsed : DataFrame
-        파싱되지 않은 데이터
-
-    Returns:
-    --------
-    DataFrame : (disp_nm1, disp_nm2) 조합별 개수
+    - engine: SQLAlchemy engine
+    - df_parsed: 파싱된 데이터 DataFrame
     """
-    if len(df_unparsed) == 0:
-        print("파싱되지 않은 데이터가 없습니다.")
-        return pd.DataFrame()
+    try:
+        if len(df_parsed) == 0:
+            print("⚠️ 저장할 파싱 데이터가 없습니다.")
+            return True
 
-    print("\n" + "="*80)
-    print("📊 파싱되지 않은 데이터의 disp_nm1 + disp_nm2 패턴 분석")
-    print("="*80)
+        # 파싱된 데이터를 직접 저장 (dimension_type별로 row 생성)
+        rows_to_insert = []
 
-    # disp_nm1, disp_nm2 조합별 카운트
-    pattern_counts = df_unparsed.groupby(['disp_nm1', 'disp_nm2']).size().reset_index(name='count')
-    pattern_counts = pattern_counts.sort_values('count', ascending=False)
+        for _, row in df_parsed.iterrows():
+            row_dict = row.to_dict()
 
-    print("\n상위 20개 패턴:")
-    print(pattern_counts.head(20).to_string(index=False))
+            # mod 테이블에 저장할 데이터 준비
+            insert_data = {
+                'mdl_code': row_dict.get('mdl_code'),
+                'goods_nm': row_dict.get('goods_nm'),
+                'disp_lv1': row_dict.get('disp_lv1'),
+                'disp_lv2': row_dict.get('disp_lv2'),
+                'disp_lv3': row_dict.get('disp_lv3'),
+                'category_lv1': row_dict.get('category_lv1'),
+                'category_lv2': row_dict.get('category_lv2'),
+                'category_lv3': row_dict.get('category_lv3'),
+                'disp_nm1': row_dict.get('disp_nm1'),
+                'disp_nm2': row_dict.get('disp_nm2'),
+                'value': row_dict.get('value'),
+                'is_numeric': row_dict.get('is_numeric'),
+                'symbols': row_dict.get('symbols'),
+                'new_value': row_dict.get('new_value'),
+                'target_disp_nm2': row_dict.get('target_disp_nm2'),
+                'dimension_type': row_dict.get('dimension_type'),  # 개별 dimension type (width, height, depth)
+                'parsed_value': row_dict.get('parsed_value'),
+                'needs_check': row_dict.get('needs_check', False)
+            }
+            rows_to_insert.append(insert_data)
 
-    print("\n💡 화이트리스트 추가 예시:")
-    print("="*80)
-    for _, row in pattern_counts.head(10).iterrows():
-        print(f"    ('{row['disp_nm1']}', '{row['disp_nm2']}'): 'product',  # {row['count']}개")
+        # DataFrame으로 변환하여 한번에 저장
+        df_to_save = pd.DataFrame(rows_to_insert)
 
-    return pattern_counts
+        # 테이블에 저장
+        df_to_save.to_sql(MOD_TABLE, engine, if_exists='append', index=False)
 
-def identify_dimension_type(text, disp_nm3=None):
+        # validation_rule_id별로 dimension_type 집계 (사용자 확인용)
+        rule_summary = df_parsed.groupby('validation_rule_id')['dimension_type'].apply(
+            lambda x: sorted(list(set(x)))
+        )
+
+        print(f"✅ Mod 테이블에 {len(df_to_save)}개 dimension 값 저장 완료")
+        print(f"📊 처리된 규칙별 dimension 타입:")
+        for rule_id, dimensions in rule_summary.items():
+            print(f"   - {dimensions}")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Mod 테이블 저장 실패: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def identify_dimension_type(text):
     """
     텍스트에서 dimension 타입을 식별
 
@@ -452,8 +308,6 @@ def identify_dimension_type(text, disp_nm3=None):
     -----------
     text : str
         분석할 텍스트 (disp_nm2)
-    disp_nm3 : str, optional
-        제품 카테고리 정보 (마우스, 키보드 구분용)
     """
     text_lower = text.lower()
 
@@ -474,24 +328,14 @@ def identify_dimension_type(text, disp_nm3=None):
 
 def parse_dimensions_advanced(row):
     """
-    화이트리스트 기반 dimension 파싱 함수
+    dimension 파싱 함수
 
-    1. disp_nm1 + disp_nm2 조합이 화이트리스트에 있는지 확인
-    2. 화이트리스트에 있으면 value를 파싱
-    3. 화이트리스트에 없으면 파싱하지 않음 (정확성 우선)
+    validation_rule에 따라 데이터를 파싱
+    (화이트리스트 체크 제거 - staging 테이블의 is_target으로 대체)
     """
     parsed_rows = []
     value = str(row['value'])
-    disp_nm1 = str(row.get('disp_nm1', ''))
     disp_nm2 = str(row.get('disp_nm2', ''))
-    disp_nm3 = str(row.get('disp_nm3', ''))
-
-    # ============================================
-    # 화이트리스트 체크 (최우선)
-    # ============================================
-    if not is_whitelisted(disp_nm1, disp_nm2):
-        # 화이트리스트에 없으면 파싱하지 않음
-        return parsed_rows, False, False
 
     # ============================================
     # 전처리: 제외 조건 체크 및 값 추출
@@ -707,7 +551,7 @@ def parse_dimensions_advanced(row):
     # 패턴 5: 단일 값 (disp_nm2에서 dimension 타입 식별)
     single_match = re.search(r'([0-9,]+(?:\.[0-9]+)?)', value)
     if single_match:
-        dim_type = identify_dimension_type(disp_nm2, disp_nm3)
+        dim_type = identify_dimension_type(disp_nm2)
         if dim_type:
             try:
                 clean_num = single_match.group(1).replace(',', '')
@@ -727,20 +571,16 @@ def parse_dimensions_advanced(row):
 # 메인 실행 함수
 # ============================================
 
-def process_spec_data(source_table, target_table, allowed_disp_nm1=None, truncate_before_insert=True, verbose=True):
+def process_spec_data_with_validation(engine, truncate_before_insert=True, verbose=True):
     """
-    스펙 데이터 처리 파이프라인 실행
+    검증 규칙 기반 스펙 데이터 처리 파이프라인 실행
 
     Parameters:
     -----------
-    source_table : str
-        소스 테이블명
-    target_table : str
-        타겟 테이블명
-    allowed_disp_nm1 : list, optional
-        필터링할 disp_nm1 값 리스트 (None이면 필터링 안함)
+    engine : SQLAlchemy engine
+        데이터베이스 연결
     truncate_before_insert : bool
-        True이면 기존 데이터 삭제 후 삽입
+        True이면 mod 테이블의 기존 데이터 삭제 후 삽입
     verbose : bool
         상세 출력 여부
 
@@ -748,22 +588,25 @@ def process_spec_data(source_table, target_table, allowed_disp_nm1=None, truncat
     --------
     bool : 성공 여부
     """
-    # 1. SQLAlchemy 엔진 생성
-    engine = get_sqlalchemy_engine()
-
-    if engine is None:
-        print("❌ 엔진 생성 실패. 작업을 중단합니다.")
-        return False
-
     try:
-        # 2. 데이터 로드
+        # 1. validation 규칙 로드
         print("\n" + "="*80)
-        print("📥 데이터 로드 중...")
+        print("📥 검증 규칙 로드 중...")
         print("="*80)
-        df_filtered = load_data_from_table(engine, source_table, allowed_disp_nm1)
+        validation_rules = load_validation_rules(engine)
+
+        if validation_rules is None or len(validation_rules) == 0:
+            print("\n⚠️ 처리할 검증 규칙이 없습니다 (is_target=true, is_completed=false)")
+            return True
+
+        # 2. 검증 규칙에 매칭되는 데이터 로드
+        print("\n" + "="*80)
+        print("📥 소스 데이터 로드 중...")
+        print("="*80)
+        df_filtered = load_data_with_validation_rules(engine, validation_rules)
 
         if df_filtered is None or len(df_filtered) == 0:
-            print("\n❌ 데이터 로드 실패 또는 데이터 없음")
+            print("\n❌ 매칭되는 데이터가 없습니다")
             return False
 
         # 3. 데이터 파싱
@@ -772,58 +615,80 @@ def process_spec_data(source_table, target_table, allowed_disp_nm1=None, truncat
         print("="*80)
 
         parsed_data = []
-        parsed_data_needs_check = []
+        parsed_results = {}  # {validation_rule_id: success}
         unparsed_data = []
 
         for _, row in df_filtered.iterrows():
             parsed_rows, success, needs_check = parse_dimensions_advanced(row)
+            rule_id = row['validation_rule_id']
+
             if success and parsed_rows:
-                if needs_check:
-                    parsed_data_needs_check.extend(parsed_rows)
-                else:
-                    parsed_data.extend(parsed_rows)
+                # validation_rule_id와 target_disp_nm2 추가
+                for parsed_row in parsed_rows:
+                    parsed_row['validation_rule_id'] = rule_id
+                    parsed_row['target_disp_nm2'] = row['target_disp_nm2']
+
+                parsed_data.extend(parsed_rows)
+                parsed_results[rule_id] = True
             else:
                 unparsed_data.append(row)
+                if rule_id not in parsed_results:
+                    parsed_results[rule_id] = False
 
         df_parsed = pd.DataFrame(parsed_data)
-        df_parsed_needs_check = pd.DataFrame(parsed_data_needs_check)
         df_unparsed = pd.DataFrame(unparsed_data)
 
         # 파싱 통계 출력
-        total_parsed = len(df_parsed) + len(df_parsed_needs_check)
-        print(f"✅ 파싱 성공 (확실): {len(df_parsed)}개 행")
-        print(f"⚠️  파싱 성공 (체크 필요): {len(df_parsed_needs_check)}개 행")
+        successful_rules = len([v for v in parsed_results.values() if v])
+        total_rules = len(validation_rules)
+        print(f"✅ 파싱 성공: {len(df_parsed)}개 dimension 값")
+        print(f"✅ 성공한 검증 규칙: {successful_rules}/{total_rules}개")
         print(f"❌ 파싱 실패: {len(df_unparsed)}개 행")
-        print(f"📈 전체 대비 파싱률: {(total_parsed / len(df_filtered) * 100):.1f}%")
+        print(f"📈 전체 대비 파싱률: {(len(df_parsed) / len(df_filtered) * 100 if len(df_filtered) > 0 else 0):.1f}%")
 
         # 상세 출력 (verbose 모드)
-        if verbose:
-            print_parsing_results(df_parsed, df_parsed_needs_check, df_unparsed)
+        if verbose and len(df_parsed) > 0:
+            print("\n✅ 파싱 성공 데이터 샘플 (처음 20개):")
+            print("-" * 80)
+            display_cols = ['mdl_code', 'goods_nm', 'disp_nm1', 'disp_nm2', 'target_disp_nm2', 'dimension_type', 'parsed_value', 'value']
+            available_cols = [col for col in display_cols if col in df_parsed.columns]
+            print(df_parsed[available_cols].head(20).to_string())
 
-        # 4. PostgreSQL 테이블에 저장
+        # 4. Mod 테이블에 저장
         print("\n" + "="*80)
-        print("💾 데이터 저장 중...")
+        print("💾 Mod 테이블에 저장 중...")
         print("="*80)
 
-        success = save_parsed_data_to_table(
-            engine=engine,
-            df_parsed=df_parsed,
-            df_needs_check=df_parsed_needs_check,
-            source_table_name=source_table,
-            target_table_name=target_table,
-            truncate_before_insert=truncate_before_insert
-        )
+        if truncate_before_insert:
+            truncate_table(engine, MOD_TABLE)
+
+        success_mod = save_to_mod_table(engine, df_parsed)
+
+        # 5. Staging 테이블 업데이트
+        print("\n" + "="*80)
+        print("💾 Staging 테이블 업데이트 중...")
+        print("="*80)
+
+        # validation_rule_id별로 dimension_type 집계
+        dimension_summaries = {}
+        if len(df_parsed) > 0:
+            dimension_summaries = df_parsed.groupby('validation_rule_id')['dimension_type'].apply(
+                lambda x: sorted(list(set(x)))
+            ).to_dict()
+
+        success_staging = update_staging_table(engine, validation_rules, parsed_results, dimension_summaries)
+
+        success = success_mod and success_staging
 
         if success:
             print("\n" + "="*80)
             print("✅ 전체 작업 완료!")
             print("="*80)
             print(f"📊 요약:")
-            print(f"  - 소스 테이블: {source_table}")
-            print(f"  - 타겟 테이블: {target_table}")
-            print(f"  - 저장된 데이터: {total_parsed}개 행")
-            print(f"  - 기존 데이터 삭제: {'예' if truncate_before_insert else '아니오'}")
-            print(f"  - 타겟 테이블 스키마: 소스 테이블 컬럼 + dimension_type, parsed_value, needs_check")
+            print(f"  - 처리된 검증 규칙: {successful_rules}/{total_rules}개")
+            print(f"  - 파싱된 dimension 값: {len(df_parsed)}개")
+            print(f"  - Staging 테이블 업데이트: 완료")
+            print(f"  - Mod 테이블 저장: 완료")
             return True
         else:
             print("\n❌ 데이터 저장 실패")
@@ -834,137 +699,40 @@ def process_spec_data(source_table, target_table, allowed_disp_nm1=None, truncat
         import traceback
         traceback.print_exc()
         return False
-    finally:
-        if engine:
-            engine.dispose()
 
-def print_parsing_results(df_parsed, df_parsed_needs_check, df_unparsed):
-    """파싱 결과 상세 출력"""
 
-    # 파싱 성공한 데이터 출력 (확실한 것)
-    if len(df_parsed) > 0:
-        print("\n✅ 파싱 성공 데이터 - 확실 (처음 20개):")
-        print("-" * 80)
-        display_cols = ['disp_nm1', 'disp_nm2', 'disp_nm3', 'disp_nm4', 'dimension_type', 'parsed_value', 'value']
-        available_cols = [col for col in display_cols if col in df_parsed.columns]
-        print(df_parsed[available_cols].head(20).to_string())
-    else:
-        print("\n확실하게 파싱된 데이터가 없습니다.")
-
-    # 파싱 성공했지만 체크가 필요한 데이터 출력
-    if len(df_parsed_needs_check) > 0:
-        print("\n\n⚠️  파싱 성공 데이터 - 체크 필요 (단위 명시 없음, 처음 20개):")
-        print("-" * 80)
-        display_cols = ['disp_nm1', 'disp_nm2', 'disp_nm3', 'disp_nm4', 'dimension_type', 'parsed_value', 'value']
-        available_cols = [col for col in display_cols if col in df_parsed_needs_check.columns]
-        print(df_parsed_needs_check[available_cols].head(20).to_string())
-    else:
-        print("\n체크가 필요한 데이터가 없습니다.")
-
-    # 파싱 실패한 데이터 출력
-    if len(df_unparsed) > 0:
-        print("\n\n❌ 파싱 실패 데이터 (처음 20개):")
-        print("-" * 80)
-        display_cols = ['disp_nm1', 'disp_nm2', 'disp_nm3', 'disp_nm4', 'value']
-        available_cols = [col for col in display_cols if col in df_unparsed.columns]
-        print(df_unparsed[available_cols].head(20).to_string())
-
-        # 파싱 실패 패턴 분석 (화이트리스트에 추가할 후보 찾기)
-        analyze_unparsed_patterns(df_unparsed)
-    else:
-        print("\n\n모든 데이터가 성공적으로 파싱되었습니다!")
-
-def get_user_input():
-    """사용자로부터 실행 파라미터 입력받기"""
-    print("\n" + "="*80)
-    print("스펙 데이터 변환 파이프라인 설정")
-    print("="*80)
-
-    # 소스 테이블
-    source_table = input("\n소스 테이블명을 입력하세요 [기본값: test_spec_01]: ").strip()
-    if not source_table:
-        source_table = "test_spec_01"
-
-    # 타겟 테이블
-    target_table = input("타겟 테이블명을 입력하세요 [기본값: test_spec_02]: ").strip()
-    if not target_table:
-        target_table = "test_spec_02"
-
-    # 필터링 옵션
-    use_filter = input("\ndisp_nm1 필터링을 사용하시겠습니까? (y/n) [기본값: y]: ").strip().lower()
-    if use_filter != 'n':
-        print("\n기본 필터 값:")
-        for i, val in enumerate(DEFAULT_ALLOWED_DISP_NM1, 1):
-            print(f"  {i}. {val}")
-
-        use_default = input("\n기본 필터 값을 사용하시겠습니까? (y/n) [기본값: y]: ").strip().lower()
-        if use_default == 'n':
-            custom_filter = input("필터링할 disp_nm1 값들을 쉼표로 구분하여 입력하세요: ").strip()
-            allowed_disp_nm1 = [v.strip() for v in custom_filter.split(',') if v.strip()]
-        else:
-            allowed_disp_nm1 = DEFAULT_ALLOWED_DISP_NM1
-    else:
-        allowed_disp_nm1 = None
-
-    # Truncate 옵션
-    truncate = input("\n타겟 테이블의 기존 데이터를 삭제하시겠습니까? (y/n) [기본값: y]: ").strip().lower()
-    truncate_before_insert = truncate != 'n'
-
-    # 상세 출력 옵션
-    verbose = input("\n파싱 결과를 상세히 출력하시겠습니까? (y/n) [기본값: y]: ").strip().lower()
-    verbose = verbose != 'n'
-
-    return source_table, target_table, allowed_disp_nm1, truncate_before_insert, verbose
 
 def main():
     """메인 실행 함수"""
     parser = argparse.ArgumentParser(
-        description='PostgreSQL 스펙 데이터 변환 파이프라인',
+        description='PostgreSQL 스펙 데이터 변환 파이프라인 (검증 규칙 기반)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 예제:
-  python transform_spec.py                     # 대화형 모드
-  python transform_spec.py --source-table test_spec_01 --target-table test_spec_02
-  python transform_spec.py --no-filter --no-truncate
+  python transform_spec.py                     # 기본 실행
+  python transform_spec.py --no-truncate       # mod 테이블 데이터 유지
+  python transform_spec.py --quiet             # 간략한 출력
         '''
     )
 
-    parser.add_argument('--source-table', '-s', type=str, help='소스 테이블명')
-    parser.add_argument('--target-table', '-t', type=str, help='타겟 테이블명')
-    parser.add_argument('--filter', nargs='+', help='필터링할 disp_nm1 값 리스트')
-    parser.add_argument('--no-filter', action='store_true', help='필터링 없이 전체 데이터 처리')
-    parser.add_argument('--no-truncate', action='store_true', help='타겟 테이블 기존 데이터 유지')
+    parser.add_argument('--no-truncate', action='store_true', help='mod 테이블 기존 데이터 유지')
     parser.add_argument('--quiet', '-q', action='store_true', help='간략한 출력만 표시')
 
     args = parser.parse_args()
 
-    # 명령행 인자가 제공되지 않은 경우 대화형 모드
-    if not args.source_table and not args.target_table:
-        print("\n🚀 PostgreSQL 스펙 데이터 변환 파이프라인")
-        print("="*80)
-        source_table, target_table, allowed_disp_nm1, truncate_before_insert, verbose = get_user_input()
-    else:
-        # 명령행 인자 사용
-        source_table = args.source_table or "test_spec_01"
-        target_table = args.target_table or "test_spec_02"
+    truncate_before_insert = not args.no_truncate
+    verbose = not args.quiet
 
-        if args.no_filter:
-            allowed_disp_nm1 = None
-        elif args.filter:
-            allowed_disp_nm1 = args.filter
-        else:
-            allowed_disp_nm1 = DEFAULT_ALLOWED_DISP_NM1
-
-        truncate_before_insert = not args.no_truncate
-        verbose = not args.quiet
+    print("\n🚀 PostgreSQL 스펙 데이터 변환 파이프라인 (검증 규칙 기반)")
+    print("="*80)
 
     # 설정 확인
     print("\n" + "="*80)
     print("실행 설정 확인")
     print("="*80)
-    print(f"소스 테이블: {source_table}")
-    print(f"타겟 테이블: {target_table}")
-    print(f"필터링: {allowed_disp_nm1 if allowed_disp_nm1 else '없음'}")
+    print(f"Staging 테이블: {STAGING_TABLE}")
+    print(f"소스 테이블: {SOURCE_TABLE}")
+    print(f"Mod 테이블: {MOD_TABLE}")
     print(f"기존 데이터 삭제: {'예' if truncate_before_insert else '아니오'}")
     print(f"상세 출력: {'예' if verbose else '아니오'}")
 
@@ -973,17 +741,24 @@ def main():
         print("작업을 취소했습니다.")
         return
 
-    # 파이프라인 실행
-    success = process_spec_data(
-        source_table=source_table,
-        target_table=target_table,
-        allowed_disp_nm1=allowed_disp_nm1,
-        truncate_before_insert=truncate_before_insert,
-        verbose=verbose
-    )
+    # 엔진 생성
+    engine = get_sqlalchemy_engine()
+    if engine is None:
+        print("❌ 데이터베이스 연결 실패")
+        sys.exit(1)
 
-    # 종료 코드 반환
-    sys.exit(0 if success else 1)
+    try:
+        # 파이프라인 실행
+        success = process_spec_data_with_validation(
+            engine=engine,
+            truncate_before_insert=truncate_before_insert,
+            verbose=verbose
+        )
+
+        # 종료 코드 반환
+        sys.exit(0 if success else 1)
+    finally:
+        engine.dispose()
 
 if __name__ == "__main__":
     main()
