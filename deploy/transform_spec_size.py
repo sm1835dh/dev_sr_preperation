@@ -25,10 +25,10 @@ dimension (width, height, depth) 정보를 파싱하고 변환합니다.
 사용법:
 ------
 1. 기본 실행:
-   python transform_spec.py
+   python transform_spec_size.py
 
 2. mod 테이블 데이터 유지하며 실행:
-   python transform_spec.py --no-truncate
+   python transform_spec_size.py --no-truncate
 
 필수 환경 변수 (.env 파일에 설정):
 --------------------------------
@@ -56,14 +56,16 @@ import re
 import pandas as pd
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
+from datetime import datetime
+import time
 
 # .env 파일 로드
 load_dotenv()
 
 # 테이블 이름 정의
-STAGING_TABLE = 'kt_spec_validation_table_20251021_staging'
-SOURCE_TABLE = 'kt_spec_validation_table_20251021'
-MOD_TABLE = 'kt_spec_validation_table_20251021_mod'
+STAGING_TABLE = 'kt_spec_validation_table_v03_20251023_staging'
+SOURCE_TABLE = 'kt_spec_validation_table_v03_20251023'
+MOD_TABLE = 'kt_spec_validation_table_v03_20251023_result'
 
 def get_sqlalchemy_engine():
     """SQLAlchemy 엔진 생성"""
@@ -235,69 +237,132 @@ def update_staging_table(engine, validation_rules_df, parsed_results, dimension_
 
 def save_to_mod_table(engine, df_parsed):
     """
-    파싱 결과를 mod 테이블에 저장
+    파싱 결과를 mod 테이블에 저장 (중복 체크 포함)
 
     Parameters:
     - engine: SQLAlchemy engine
     - df_parsed: 파싱된 데이터 DataFrame
+
+    Returns:
+    - tuple: (success, duplicate_count)
     """
     try:
         if len(df_parsed) == 0:
             print("⚠️ 저장할 파싱 데이터가 없습니다.")
-            return True
+            return True, 0
 
-        # 파싱된 데이터를 직접 저장 (dimension_type별로 row 생성)
+        # 중복 체크를 위한 키 컬럼들
+        duplicate_check_cols = [
+            'mdl_code', 'goods_nm', 'category_lv1', 'category_lv2',
+            'disp_nm1', 'disp_nm2', 'value', 'target_disp_nm2',
+            'dimension_type', 'parsed_value'
+        ]
+
+        # 기존 데이터 조회 (중복 체크용)
+        try:
+            existing_query = f"""
+                SELECT mdl_code, goods_nm, category_lv1, category_lv2,
+                       disp_nm1, disp_nm2, value, target_disp_nm2,
+                       dimension_type, parsed_value
+                FROM {MOD_TABLE}
+            """
+            df_existing = pd.read_sql(existing_query, engine)
+        except Exception as e:
+            # 테이블이 없거나 비어있는 경우
+            df_existing = pd.DataFrame(columns=duplicate_check_cols)
+
+        # 파싱된 데이터를 저장 형식으로 준비
         rows_to_insert = []
+        duplicate_count = 0
 
         for _, row in df_parsed.iterrows():
             row_dict = row.to_dict()
 
-            # mod 테이블에 저장할 데이터 준비
-            insert_data = {
+            # 중복 체크용 데이터 준비
+            check_data = {
                 'mdl_code': row_dict.get('mdl_code'),
                 'goods_nm': row_dict.get('goods_nm'),
-                'disp_lv1': row_dict.get('disp_lv1'),
-                'disp_lv2': row_dict.get('disp_lv2'),
-                'disp_lv3': row_dict.get('disp_lv3'),
                 'category_lv1': row_dict.get('category_lv1'),
                 'category_lv2': row_dict.get('category_lv2'),
-                'category_lv3': row_dict.get('category_lv3'),
                 'disp_nm1': row_dict.get('disp_nm1'),
                 'disp_nm2': row_dict.get('disp_nm2'),
                 'value': row_dict.get('value'),
-                'is_numeric': row_dict.get('is_numeric'),
-                'symbols': row_dict.get('symbols'),
-                'new_value': row_dict.get('new_value'),
                 'target_disp_nm2': row_dict.get('target_disp_nm2'),
-                'dimension_type': row_dict.get('dimension_type'),  # 개별 dimension type (width, height, depth)
-                'parsed_value': row_dict.get('parsed_value'),
-                'needs_check': row_dict.get('needs_check', False)
+                'dimension_type': row_dict.get('dimension_type'),
+                'parsed_value': row_dict.get('parsed_value')
             }
-            rows_to_insert.append(insert_data)
 
-        # DataFrame으로 변환하여 한번에 저장
-        df_to_save = pd.DataFrame(rows_to_insert)
+            # 중복 체크
+            is_duplicate = False
+            if len(df_existing) > 0:
+                # 모든 키 컬럼이 일치하는지 확인
+                mask = True
+                for col in duplicate_check_cols:
+                    # NaN 처리를 위한 특별 로직
+                    col_value = check_data.get(col)
+                    if pd.isna(col_value):
+                        mask = mask & df_existing[col].isna()
+                    else:
+                        mask = mask & (df_existing[col] == col_value)
 
-        # 테이블에 저장
-        df_to_save.to_sql(MOD_TABLE, engine, if_exists='append', index=False)
+                if mask.any():
+                    is_duplicate = True
+                    duplicate_count += 1
+
+            if not is_duplicate:
+                # mod 테이블에 저장할 전체 데이터 준비
+                insert_data = {
+                    'mdl_code': row_dict.get('mdl_code'),
+                    'goods_nm': row_dict.get('goods_nm'),
+                    'disp_lv1': row_dict.get('disp_lv1'),
+                    'disp_lv2': row_dict.get('disp_lv2'),
+                    'disp_lv3': row_dict.get('disp_lv3'),
+                    'category_lv1': row_dict.get('category_lv1'),
+                    'category_lv2': row_dict.get('category_lv2'),
+                    'category_lv3': row_dict.get('category_lv3'),
+                    'disp_nm1': row_dict.get('disp_nm1'),
+                    'disp_nm2': row_dict.get('disp_nm2'),
+                    'value': row_dict.get('value'),
+                    'is_numeric': row_dict.get('is_numeric'),
+                    'symbols': row_dict.get('symbols'),
+                    'new_value': row_dict.get('new_value'),
+                    'target_disp_nm2': row_dict.get('target_disp_nm2'),
+                    'dimension_type': row_dict.get('dimension_type'),
+                    'parsed_value': row_dict.get('parsed_value'),
+                    'needs_check': row_dict.get('needs_check', False)
+                }
+                rows_to_insert.append(insert_data)
+
+                # 메모리상의 기존 데이터에도 추가 (후속 중복 체크를 위해)
+                df_existing = pd.concat([df_existing, pd.DataFrame([check_data])], ignore_index=True)
+
+        # 새로운 데이터만 저장
+        if len(rows_to_insert) > 0:
+            df_to_save = pd.DataFrame(rows_to_insert)
+            df_to_save.to_sql(MOD_TABLE, engine, if_exists='append', index=False)
+            print(f"✅ {len(rows_to_insert)}개의 새로운 데이터를 저장했습니다.")
+        else:
+            print("ℹ️ 모든 데이터가 이미 존재합니다. 새로운 데이터가 없습니다.")
+
+        if duplicate_count > 0:
+            print(f"⚠️ {duplicate_count}개의 중복 데이터는 건너뛰었습니다.")
 
         # validation_rule_id별로 dimension_type 집계 (사용자 확인용)
         rule_summary = df_parsed.groupby('validation_rule_id')['dimension_type'].apply(
             lambda x: sorted(list(set(x)))
         )
 
-        print(f"✅ Mod 테이블에 {len(df_to_save)}개 dimension 값 저장 완료")
         print(f"📊 처리된 규칙별 dimension 타입:")
         for rule_id, dimensions in rule_summary.items():
             print(f"   - {dimensions}")
 
-        return True
+        return True, duplicate_count
 
     except Exception as e:
         print(f"❌ Mod 테이블 저장 실패: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        return False, 0
 
 
 def identify_dimension_type(text):
@@ -346,15 +411,48 @@ def parse_dimensions_advanced(row):
 
     # 복수 개의 값이 있는 경우 첫 번째 값만 추출
     # 예: "TOP/BOTTOM : 1460.0(L) x 24.6(W) x 17.7(H), LEFT/RIGHT : 837.4(L) x 24.6(W) x 17.7(H) mm"
-    # → "TOP/BOTTOM : 1460.0(L) x 24.6(W) x 17.7(H)"
-    if ':' in value and ',' in value:
-        # 콜론과 콤마가 있으면 첫 번째 그룹만 추출
-        first_part = value.split(',')[0].strip()
-        # "TOP/BOTTOM : 값" 형태에서 값 부분만 추출
-        if ':' in first_part:
-            value = first_part.split(':', 1)[1].strip()
+    # 예: "TOP/BOTTOM : 730.8(L), 17.7(W) x 24.6(H) mm, LEFT/RIGHT : 425.3(L), 17.7(W) x 24.6(H) mm"
+    # → 첫 번째 세트만 추출
+
+    # 복수 세트 감지: LEFT/RIGHT/TOP/BOTTOM 키워드가 2번 이상 나타나는지 확인
+    direction_keywords = ['LEFT', 'RIGHT', 'TOP', 'BOTTOM']
+    keyword_count = sum(1 for keyword in direction_keywords if keyword in value.upper())
+
+    if keyword_count >= 2:
+        # 복수 세트가 있는 경우
+        # 정규식으로 첫 번째 세트 추출: "라벨 : 값들" 패턴에서 다음 라벨 앞까지
+        # LEFT/RIGHT/TOP/BOTTOM 키워드 앞에서 분리
+        first_set_match = re.search(
+            r'(?:TOP|BOTTOM|LEFT|RIGHT)[^:]*:\s*([^:]+?)(?=\s*(?:,\s*)?(?:LEFT|RIGHT|TOP|BOTTOM)|$)',
+            value,
+            re.IGNORECASE
+        )
+
+        if first_set_match:
+            # 첫 번째 세트의 값 부분만 추출
+            extracted_value = first_set_match.group(1).strip()
+            # 끝에 있는 불필요한 콤마 제거
+            if extracted_value.endswith(','):
+                extracted_value = extracted_value[:-1].strip()
+            value = extracted_value
         else:
-            value = first_part
+            # Fallback: 콜론이 있으면 첫 번째 콜론 다음부터 두 번째 방향 키워드까지
+            if ':' in value:
+                # 콜론 뒤의 내용 추출
+                after_colon = value.split(':', 1)[1]
+                # 두 번째 방향 키워드 찾기
+                second_keyword_match = re.search(r'(LEFT|RIGHT|TOP|BOTTOM)', after_colon, re.IGNORECASE)
+                if second_keyword_match:
+                    value = after_colon[:second_keyword_match.start()].strip()
+                    # 끝에 콤마가 있으면 제거
+                    if value.endswith(','):
+                        value = value[:-1].strip()
+                else:
+                    value = after_colon.strip()
+    else:
+        # 단일 세트인 경우 - 콜론이 있고 방향 키워드가 있으면 콜론 뒤의 값만 추출
+        if ':' in value and any(keyword in value.upper() for keyword in direction_keywords):
+            value = value.split(':', 1)[1].strip()
 
     # 키보드 세트의 경우 첫 번째 제품만 파싱
     if '키보드' in value and ':' in value:
@@ -588,6 +686,9 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
     --------
     bool : 성공 여부
     """
+    # 전체 수행 시간 측정 시작
+    start_time = time.time()
+
     try:
         # 1. validation 규칙 로드
         print("\n" + "="*80)
@@ -646,6 +747,24 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
         print(f"❌ 파싱 실패: {len(df_unparsed)}개 행")
         print(f"📈 전체 대비 파싱률: {(len(df_parsed) / len(df_filtered) * 100 if len(df_filtered) > 0 else 0):.1f}%")
 
+        # 파싱 실패 데이터 상세 출력
+        if len(df_unparsed) > 0:
+            print("\n" + "="*80)
+            print(f"❌ 파싱 실패 데이터 상세 ({len(df_unparsed)}개 행)")
+            print("="*80)
+
+            # 화면 출력
+            display_cols = ['mdl_code', 'goods_nm', 'disp_nm1', 'disp_nm2', 'value', 'validation_rule_id']
+            available_cols = [col for col in display_cols if col in df_unparsed.columns]
+            print(df_unparsed[available_cols].to_string(index=False))
+
+            # CSV 파일로 저장
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            failed_file = f"parsing_failed_{timestamp}.csv"
+            df_unparsed[available_cols].to_csv(failed_file, index=False, encoding='utf-8-sig')
+            print(f"\n💾 파싱 실패 데이터를 '{failed_file}' 파일로 저장했습니다.")
+            print("="*80)
+
         # 상세 출력 (verbose 모드)
         if verbose and len(df_parsed) > 0:
             print("\n✅ 파싱 성공 데이터 샘플 (처음 20개):")
@@ -662,7 +781,7 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
         if truncate_before_insert:
             truncate_table(engine, MOD_TABLE)
 
-        success_mod = save_to_mod_table(engine, df_parsed)
+        success_mod, duplicate_count = save_to_mod_table(engine, df_parsed)
 
         # 5. Staging 테이블 업데이트
         print("\n" + "="*80)
@@ -680,6 +799,12 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
 
         success = success_mod and success_staging
 
+        # 전체 수행 시간 계산
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        elapsed_minutes = int(elapsed_time // 60)
+        elapsed_seconds = elapsed_time % 60
+
         if success:
             print("\n" + "="*80)
             print("✅ 전체 작업 완료!")
@@ -687,15 +812,35 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
             print(f"📊 요약:")
             print(f"  - 처리된 검증 규칙: {successful_rules}/{total_rules}개")
             print(f"  - 파싱된 dimension 값: {len(df_parsed)}개")
-            print(f"  - Staging 테이블 업데이트: 완료")
+
+            # mdl_code별 생성된 rows 통계
+            if len(df_parsed) > 0:
+                mdl_code_stats = df_parsed.groupby('mdl_code').size().value_counts().sort_index()
+                print(f"\n📈 mdl_code별 생성 rows 통계:")
+                for row_count, mdl_count in mdl_code_stats.items():
+                    print(f"  - {row_count}개 row 생성: {mdl_count}개 mdl_code")
+                print(f"  - 전체 mdl_code 수: {df_parsed['mdl_code'].nunique()}개")
+
+            print(f"\n  - Staging 테이블 업데이트: 완료")
             print(f"  - Mod 테이블 저장: 완료")
+            if duplicate_count > 0:
+                print(f"  - 중복으로 건너뛴 데이터: {duplicate_count}개")
+            print(f"  - 전체 수행 시간: {elapsed_minutes}분 {elapsed_seconds:.2f}초")
             return True
         else:
             print("\n❌ 데이터 저장 실패")
+            print(f"⏱️  전체 수행 시간: {elapsed_minutes}분 {elapsed_seconds:.2f}초")
             return False
 
     except Exception as e:
+        # 오류 발생 시에도 수행 시간 출력
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        elapsed_minutes = int(elapsed_time // 60)
+        elapsed_seconds = elapsed_time % 60
+
         print(f"\n❌ 처리 중 오류 발생: {e}")
+        print(f"⏱️  수행 시간 (오류 발생 시점까지): {elapsed_minutes}분 {elapsed_seconds:.2f}초")
         import traceback
         traceback.print_exc()
         return False
@@ -709,9 +854,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 예제:
-  python transform_spec.py                     # 기본 실행
-  python transform_spec.py --no-truncate       # mod 테이블 데이터 유지
-  python transform_spec.py --quiet             # 간략한 출력
+  python transform_spec_size.py                     # 기본 실행
+  python transform_spec_size.py --no-truncate       # mod 테이블 데이터 유지
+  python transform_spec_size.py --quiet             # 간략한 출력
         '''
     )
 
