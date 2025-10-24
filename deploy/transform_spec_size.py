@@ -5,30 +5,31 @@
 PostgreSQL 스펙 데이터 변환 파이프라인 - 검증 규칙 기반 (Validation Rule Based)
 ================================================================================
 
-이 스크립트는 검증 규칙 테이블(staging)을 기반으로 PostgreSQL 테이블의 스펙 데이터에서
-dimension (width, height, depth) 정보를 파싱하고 변환합니다.
+이 스크립트는 검증 규칙 테이블(staging)을 기반으로 PostgreSQL 테이블의 스펙 데이터를
+goal 값에 따라 적절한 파서를 선택하여 파싱하고 변환합니다.
 
 테이블 구조:
 -----------
-1. kt_spec_validation_table_20251021_staging: 검증 규칙 테이블
+1. kt_spec_validation_table_v03_20251023_staging: 검증 규칙 테이블
+   - goal: 파싱 목적 (예: '크기작업', '색상작업' 등)
    - is_target=true인 레코드만 처리
    - is_completed: 파싱 완료 여부
 
-2. kt_spec_validation_table_20251021: 소스 데이터 테이블
+2. kt_spec_validation_table_v03_20251023: 소스 데이터 테이블
    - 실제 스펙 데이터 포함
 
-3. kt_spec_validation_table_20251021_mod: 파싱 결과 테이블
+3. kt_spec_validation_table_v03_20251023_result: 파싱 결과 테이블
    - target_disp_nm2: 사용자 정의 명칭
-   - dimension_type: ['depth', 'height', 'width'] 형식의 리스트
-   - is_target, is_completed: 모두 true로 설정
+   - dimension_type: 파싱된 타입 (goal에 따라 다름)
+   - parsed_value: 파싱된 값
 
 사용법:
 ------
-1. 기본 실행:
-   python transform_spec_size.py
+1. 기본 실행 (goal 필수):
+   python transform_spec_size.py --goal 크기작업
 
 2. mod 테이블 데이터 유지하며 실행:
-   python transform_spec_size.py --no-truncate
+   python transform_spec_size.py --goal 크기작업 --no-truncate
 
 필수 환경 변수 (.env 파일에 설정):
 --------------------------------
@@ -40,11 +41,17 @@ PG_PASSWORD=your_password
 
 주요 기능:
 ---------
-1. staging 테이블에서 is_target=true인 검증 규칙 로드
-2. 소스 테이블에서 매칭되는 데이터 조회
-3. 다양한 형식의 dimension 데이터 파싱
-4. mod 테이블에 파싱 결과 저장
-5. staging 테이블의 is_completed 업데이트
+1. goal 파라미터에 따른 파서 자동 선택
+2. staging 테이블에서 is_target=true이고 goal이 일치하는 검증 규칙 로드
+3. 소스 테이블에서 매칭되는 데이터 조회
+4. 선택된 파서로 데이터 파싱
+5. result 테이블에 파싱 결과 저장
+6. staging 테이블의 is_completed 업데이트
+
+지원하는 파서 (goal 값):
+--------------------
+- '크기작업': 제품 크기 정보 (width, height, depth) 파싱
+- (추가 예정) '색상작업', '소재작업', '기능작업' 등
 
 ================================================================================
 """
@@ -52,12 +59,14 @@ PG_PASSWORD=your_password
 import os
 import sys
 import argparse
-import re
 import pandas as pd
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 from datetime import datetime
 import time
+
+# 파서 모듈 임포트
+from parsers import get_parser, list_available_parsers
 
 # .env 파일 로드
 load_dotenv()
@@ -78,12 +87,13 @@ def get_sqlalchemy_engine():
         print(f"❌ SQLAlchemy 엔진 생성 실패: {e}")
         return None
 
-def load_validation_rules(engine):
+def load_validation_rules(engine, goal):
     """
-    staging 테이블에서 is_target=true인 validation 규칙 로드
+    staging 테이블에서 is_target=true이고 goal이 일치하는 validation 규칙 로드
 
     Parameters:
     - engine: SQLAlchemy engine
+    - goal: 파싱 목적 (예: '크기작업')
 
     Returns:
     - DataFrame with validation rules
@@ -91,12 +101,14 @@ def load_validation_rules(engine):
     try:
         query = f"""
         SELECT disp_lv1, disp_lv2, disp_lv3, disp_nm1, disp_nm2,
-               target_disp_nm2, dimension_type, is_target, is_completed
+               target_disp_nm2, dimension_type, is_target, is_completed, goal
         FROM {STAGING_TABLE}
-        WHERE is_target = true AND (is_completed = false OR is_completed IS NULL)
+        WHERE is_target = true
+          AND goal = :goal
+          AND (is_completed = false OR is_completed IS NULL)
         """
-        df = pd.read_sql(query, engine)
-        print(f"✅ 검증 규칙 {len(df)}개 로드 완료 (is_target=true, is_completed=false)")
+        df = pd.read_sql(query, engine, params={'goal': goal})
+        print(f"✅ 검증 규칙 {len(df)}개 로드 완료 (is_target=true, goal='{goal}', is_completed=false)")
         return df
     except Exception as e:
         print(f"❌ 검증 규칙 로드 실패: {e}")
@@ -175,7 +187,7 @@ def truncate_table(engine, table_name):
 
 
 # ============================================
-# 파싱 함수 정의
+# 데이터베이스 관련 함수
 # ============================================
 
 def update_staging_table(engine, validation_rules_df, parsed_results, dimension_summaries):
@@ -377,311 +389,31 @@ def save_to_mod_table(engine, df_parsed):
         return False, 0
 
 
-def identify_dimension_type(text):
+def parse_data_with_parser(row, parser):
     """
-    텍스트에서 dimension 타입을 식별
+    주어진 파서를 사용하여 데이터를 파싱
 
     Parameters:
     -----------
-    text : str
-        분석할 텍스트 (disp_nm2)
+    row : pandas.Series
+        파싱할 데이터 행
+    parser : BaseParser instance
+        사용할 파서 인스턴스
+
+    Returns:
+    --------
+    tuple : (parsed_rows, success, needs_check)
     """
-    text_lower = text.lower()
+    if parser is None:
+        return [], False, False
 
-    # L(Length) 키워드 - depth로 매핑
-    if any(keyword in text_lower for keyword in ['길이', 'l', 'length']):
-        return 'depth'
-    # Depth 키워드
-    elif any(keyword in text_lower for keyword in ['두께', '깊이', 'd']):
-        return 'depth'
-    # Width 키워드
-    elif any(keyword in text_lower for keyword in ['너비', '가로', '폭', 'w']):
-        return 'width'
-    # Height 키워드
-    elif any(keyword in text_lower for keyword in ['세로', '높이', 'h']):
-        return 'height'
-
-    return None
-
-def parse_dimensions_advanced(row):
-    """
-    dimension 파싱 함수
-
-    validation_rule에 따라 데이터를 파싱
-    (화이트리스트 체크 제거 - staging 테이블의 is_target으로 대체)
-    """
-    parsed_rows = []
-    value = str(row['value'])
-    disp_nm2 = str(row.get('disp_nm2', ''))
-
-    # ============================================
-    # 전처리: 제외 조건 체크 및 값 추출
-    # ============================================
-    # 제외 조건: 각도 조정 관련 텍스트가 포함된 경우
-    if any(keyword in value.lower() for keyword in ['각도 조정', '각도조정']):
-        return parsed_rows, False, False
-
-    # 복수 개의 값이 있는 경우 첫 번째 값만 추출
-    # 예: "TOP/BOTTOM : 1460.0(L) x 24.6(W) x 17.7(H), LEFT/RIGHT : 837.4(L) x 24.6(W) x 17.7(H) mm"
-    # 예: "TOP/BOTTOM : 730.8(L), 17.7(W) x 24.6(H) mm, LEFT/RIGHT : 425.3(L), 17.7(W) x 24.6(H) mm"
-    # → 첫 번째 세트만 추출
-
-    # 복수 세트 감지: LEFT/RIGHT/TOP/BOTTOM 키워드가 2번 이상 나타나는지 확인
-    direction_keywords = ['LEFT', 'RIGHT', 'TOP', 'BOTTOM']
-    keyword_count = sum(1 for keyword in direction_keywords if keyword in value.upper())
-
-    if keyword_count >= 2:
-        # 복수 세트가 있는 경우
-        # 정규식으로 첫 번째 세트 추출: "라벨 : 값들" 패턴에서 다음 라벨 앞까지
-        # LEFT/RIGHT/TOP/BOTTOM 키워드 앞에서 분리
-        first_set_match = re.search(
-            r'(?:TOP|BOTTOM|LEFT|RIGHT)[^:]*:\s*([^:]+?)(?=\s*(?:,\s*)?(?:LEFT|RIGHT|TOP|BOTTOM)|$)',
-            value,
-            re.IGNORECASE
-        )
-
-        if first_set_match:
-            # 첫 번째 세트의 값 부분만 추출
-            extracted_value = first_set_match.group(1).strip()
-            # 끝에 있는 불필요한 콤마 제거
-            if extracted_value.endswith(','):
-                extracted_value = extracted_value[:-1].strip()
-            value = extracted_value
-        else:
-            # Fallback: 콜론이 있으면 첫 번째 콜론 다음부터 두 번째 방향 키워드까지
-            if ':' in value:
-                # 콜론 뒤의 내용 추출
-                after_colon = value.split(':', 1)[1]
-                # 두 번째 방향 키워드 찾기
-                second_keyword_match = re.search(r'(LEFT|RIGHT|TOP|BOTTOM)', after_colon, re.IGNORECASE)
-                if second_keyword_match:
-                    value = after_colon[:second_keyword_match.start()].strip()
-                    # 끝에 콤마가 있으면 제거
-                    if value.endswith(','):
-                        value = value[:-1].strip()
-                else:
-                    value = after_colon.strip()
-    else:
-        # 단일 세트인 경우 - 콜론이 있고 방향 키워드가 있으면 콜론 뒤의 값만 추출
-        if ':' in value and any(keyword in value.upper() for keyword in direction_keywords):
-            value = value.split(':', 1)[1].strip()
-
-    # 키보드 세트의 경우 첫 번째 제품만 파싱
-    if '키보드' in value and ':' in value:
-        keyboard_match = re.search(r'키보드\s*:\s*([^가-힣]*?)(?:마우스|리시버|$)', value)
-        if keyboard_match:
-            value = keyboard_match.group(1).strip()
-
-    # 패턴 0: W숫자 x D숫자 x H숫자 형식 (예: "W269 x D375 x H269 mm") + L 매핑 지원
-    wdh_pattern = r'([WwHhDdLl])\s*([0-9,]+(?:\.[0-9]+)?)'
-    wdh_matches = re.findall(wdh_pattern, value)
-
-    if len(wdh_matches) >= 2:  # 최소 2개 이상의 dimension이 있는 경우
-        base_row = row.to_dict()
-        dimension_map = {'w': 'width', 'h': 'height', 'd': 'depth', 'l': 'depth'}  # L을 depth로 매핑
-
-        for dim_letter, num_val in wdh_matches:
-            dim_type = dimension_map.get(dim_letter.lower())
-            if dim_type:
-                # 콤마 제거 후 숫자 파싱
-                clean_num = num_val.replace(',', '')
-                try:
-                    parsed_num = float(clean_num)
-                    new_row = base_row.copy()
-                    new_row['dimension_type'] = dim_type
-                    new_row['parsed_value'] = parsed_num
-                    new_row['needs_check'] = False
-                    parsed_rows.append(new_row)
-                except ValueError:
-                    continue
-
-        if parsed_rows:
-            return parsed_rows, True, False
-    
-    # 패턴 1: value에 숫자(W), 숫자(H), 숫자(D), 숫자(L)가 명시된 경우
-    whd_pattern = r'([0-9,]+(?:\.[0-9]+)?)\s*(?:mm)?\s*\(?\s*([WwHhDdLl])\s*\)?'
-    whd_matches = re.findall(whd_pattern, value)
-
-    if len(whd_matches) >= 2:  # 최소 2개 이상의 dimension이 있는 경우
-        base_row = row.to_dict()
-        dimension_map = {'w': 'width', 'h': 'height', 'd': 'depth', 'l': 'depth'}  # L을 depth로 매핑
-
-        for num_val, dim_letter in whd_matches:
-            dim_type = dimension_map.get(dim_letter.lower())
-            if dim_type:
-                # 콤마 제거 후 숫자 파싱
-                clean_num = num_val.replace(',', '')
-                try:
-                    parsed_num = float(clean_num)
-                    new_row = base_row.copy()
-                    new_row['dimension_type'] = dim_type
-                    new_row['parsed_value'] = parsed_num
-                    new_row['needs_check'] = False
-                    parsed_rows.append(new_row)
-                except ValueError:
-                    continue
-
-        if parsed_rows:
-            return parsed_rows, True, False
-    
-    # 패턴 2: 한글 키워드로 순서 명시 (우선순위 높음)
-    # value 또는 disp_nm2에서 키워드 확인
-    # 예: disp_nm2="본체 크기 (너비x두께, mm)", value="7.0 x 2.6"
-
-    combined_text = value + ' ' + disp_nm2  # 두 필드를 합쳐서 키워드 검색
-
-    # 숫자 추출
-    nums = re.findall(r'([0-9,]+(?:\.[0-9]+)?)', value)
-    base_row = row.to_dict()
-
-    # 키워드 순서 파싱: disp_nm2에서 키워드 순서대로 추출
-    # 예: "가로x세로x두께" → ['가로', '세로', '두께']
-    keyword_pattern = r'(가로|세로|너비|폭|높이|두께|깊이|길이)'
-    keyword_order = re.findall(keyword_pattern, disp_nm2)
-
-    # 키워드가 2개 이상 있고, 숫자도 충분히 있으면 순서대로 매핑
-    if len(keyword_order) >= 2 and len(nums) >= len(keyword_order):
-        # 한글 키워드 → dimension_type 매핑 (기본값)
-        keyword_map = {
-            '가로': 'width',
-            '너비': 'width',
-            '폭': 'width',
-            '세로': 'height',   # 기본: 세로=height
-            '높이': 'height',
-            '두께': 'depth',
-            '깊이': 'depth',
-            '길이': 'depth',
-        }
-
-        # 예외 처리: 특정 조합에서 세로의 의미가 달라짐
-        # "가로x높이x세로" 패턴 → 세로를 depth로 해석
-        if '높이' in keyword_order and '세로' in keyword_order:
-            # 높이와 세로가 함께 있으면, 세로=depth
-            keyword_map['세로'] = 'depth'
-
-        try:
-            for i, keyword in enumerate(keyword_order):
-                if i < len(nums):
-                    dim_type = keyword_map.get(keyword)
-                    if dim_type:
-                        parsed_rows.append({
-                            **base_row,
-                            'dimension_type': dim_type,
-                            'parsed_value': float(nums[i].replace(',', '')),
-                            'needs_check': False
-                        })
-
-            if parsed_rows:
-                return parsed_rows, True, False
-        except ValueError:
-            pass
-
-    # 키워드 순서 파싱 실패 시, 기존 로직 사용
-
-    # 2-1. 3개 값: 가로x높이x깊이 (명시적)
-    if '가로' in combined_text and '높이' in combined_text and '깊이' in combined_text and len(nums) >= 3:
-        try:
-            parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
-            parsed_rows.append({**base_row, 'dimension_type': 'height', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
-            parsed_rows.append({**base_row, 'dimension_type': 'depth', 'parsed_value': float(nums[2].replace(',', '')), 'needs_check': False})
-            return parsed_rows, True, False
-        except ValueError:
-            pass
-
-    # 2-2. 2개 값: 너비x두께, 가로x두께, 폭x두께, 가로x깊이 등
-    if ('너비' in combined_text or '가로' in combined_text or '폭' in combined_text) and ('두께' in combined_text or '깊이' in combined_text):
-        # 높이 키워드가 없어야 함 (우선순위 구분)
-        if '높이' not in combined_text and len(nums) >= 2:
-            try:
-                parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
-                # 두께/깊이는 depth
-                parsed_rows.append({**base_row, 'dimension_type': 'depth', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
-                return parsed_rows, True, False
-            except ValueError:
-                pass
-
-    # 2-3. 2개 값: 너비x높이, 가로x높이
-    if ('너비' in combined_text or '가로' in combined_text or '폭' in combined_text) and '높이' in combined_text and len(nums) >= 2:
-        try:
-            parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
-            parsed_rows.append({**base_row, 'dimension_type': 'height', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
-            return parsed_rows, True, False
-        except ValueError:
-            pass
-    
-    # 패턴 3: WxHxD 형식 (x로 구분, 단위 명시 없음) (예: "180 x 70 x 72 mm", "223 x 96.5 x 94 mm")
-    wxhxd_match = re.search(r'([0-9,]+(?:\.[0-9]+)?)\s*[xX×]\s*([0-9,]+(?:\.[0-9]+)?)\s*[xX×]\s*([0-9,]+(?:\.[0-9]+)?)', value)
-    if wxhxd_match:
-        val1, val2, val3 = wxhxd_match.groups()
-        base_row = row.to_dict()
-
-        # 기본 가정: 가로 x 높이 x 깊이
-        dimensions = [
-            ('width', val1),
-            ('height', val2),
-            ('depth', val3)
-        ]
-
-        try:
-            for dim_type, val in dimensions:
-                new_row = base_row.copy()
-                new_row['dimension_type'] = dim_type
-                new_row['parsed_value'] = float(val.replace(',', ''))
-                new_row['needs_check'] = True  # 단위가 명확하지 않음
-                parsed_rows.append(new_row)
-
-            return parsed_rows, True, True
-        except ValueError:
-            pass
-    
-    # 패턴 4: WxH 형식 (예: "500x600 mm")
-    wxh_match = re.search(r'([0-9,]+(?:\.[0-9]+)?)\s*[xX×]\s*([0-9,]+(?:\.[0-9]+)?)', value)
-    if wxh_match:
-        val1, val2 = wxh_match.groups()
-        base_row = row.to_dict()
-
-        # 기본 가정: 가로 x 높이
-        dimensions = [
-            ('width', val1),
-            ('height', val2)
-        ]
-
-        try:
-            for dim_type, val in dimensions:
-                new_row = base_row.copy()
-                new_row['dimension_type'] = dim_type
-                new_row['parsed_value'] = float(val.replace(',', ''))
-                new_row['needs_check'] = True  # 단위가 명확하지 않음
-                parsed_rows.append(new_row)
-
-            return parsed_rows, True, True
-        except ValueError:
-            pass
-    
-    # 패턴 5: 단일 값 (disp_nm2에서 dimension 타입 식별)
-    single_match = re.search(r'([0-9,]+(?:\.[0-9]+)?)', value)
-    if single_match:
-        dim_type = identify_dimension_type(disp_nm2)
-        if dim_type:
-            try:
-                clean_num = single_match.group(1).replace(',', '')
-                parsed_num = float(clean_num)
-                base_row = row.to_dict()
-                base_row['dimension_type'] = dim_type
-                base_row['parsed_value'] = parsed_num
-                base_row['needs_check'] = False
-                parsed_rows.append(base_row)
-                return parsed_rows, True, False
-            except ValueError:
-                pass
-    
-    return parsed_rows, False, False
+    return parser.parse(row)
 
 # ============================================
 # 메인 실행 함수
 # ============================================
 
-def process_spec_data_with_validation(engine, truncate_before_insert=True, verbose=True):
+def process_spec_data_with_validation(engine, goal, truncate_before_insert=True, verbose=True):
     """
     검증 규칙 기반 스펙 데이터 처리 파이프라인 실행
 
@@ -689,6 +421,8 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
     -----------
     engine : SQLAlchemy engine
         데이터베이스 연결
+    goal : str
+        파싱 목적 (예: '크기작업')
     truncate_before_insert : bool
         True이면 mod 테이블의 기존 데이터 삭제 후 삽입
     verbose : bool
@@ -702,14 +436,23 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
     start_time = time.time()
 
     try:
+        # 0. 파서 가져오기
+        parser = get_parser(goal)
+        if parser is None:
+            print(f"❌ '{goal}'에 대한 파서를 찾을 수 없습니다.")
+            print(f"사용 가능한 파서 목록: {list_available_parsers()}")
+            return False
+
+        print(f"✅ '{goal}' 파서 로드 완료")
+
         # 1. validation 규칙 로드
         print("\n" + "="*80)
         print("📥 검증 규칙 로드 중...")
         print("="*80)
-        validation_rules = load_validation_rules(engine)
+        validation_rules = load_validation_rules(engine, goal)
 
         if validation_rules is None or len(validation_rules) == 0:
-            print("\n⚠️ 처리할 검증 규칙이 없습니다 (is_target=true, is_completed=false)")
+            print(f"\n⚠️ 처리할 검증 규칙이 없습니다 (is_target=true, goal='{goal}', is_completed=false)")
             return True
 
         # 2. 검증 규칙에 매칭되는 데이터 로드
@@ -732,7 +475,7 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
         unparsed_data = []
 
         for _, row in df_filtered.iterrows():
-            parsed_rows, success, needs_check = parse_dimensions_advanced(row)
+            parsed_rows, success, needs_check = parse_data_with_parser(row, parser)
             rule_id = row['validation_rule_id']
 
             if success and parsed_rows:
@@ -1042,21 +785,45 @@ def main():
     parser = argparse.ArgumentParser(
         description='PostgreSQL 스펙 데이터 변환 파이프라인 (검증 규칙 기반)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog='''
+        epilog=f'''
 예제:
-  python transform_spec_size.py                     # 기본 실행
-  python transform_spec_size.py --no-truncate       # mod 테이블 데이터 유지
-  python transform_spec_size.py --quiet             # 간략한 출력
+  python transform_spec_size.py --goal 크기작업                    # 크기 파싱 실행
+  python transform_spec_size.py --goal 크기작업 --no-truncate      # mod 테이블 데이터 유지
+  python transform_spec_size.py --goal 크기작업 --quiet            # 간략한 출력
+  python transform_spec_size.py --list-parsers                     # 사용 가능한 파서 목록 보기
+
+사용 가능한 파서 (goal 값):
+  {', '.join(list_available_parsers())}
         '''
     )
 
+    parser.add_argument('--goal', type=str, help='파싱 목적 (필수)')
     parser.add_argument('--no-truncate', action='store_true', help='mod 테이블 기존 데이터 유지')
     parser.add_argument('--quiet', '-q', action='store_true', help='간략한 출력만 표시')
+    parser.add_argument('--list-parsers', action='store_true', help='사용 가능한 파서 목록 표시')
 
     args = parser.parse_args()
 
+    # 파서 목록 표시 요청 처리
+    if args.list_parsers:
+        print("\n사용 가능한 파서 목록:")
+        print("=" * 40)
+        for parser_goal in list_available_parsers():
+            print(f"  - {parser_goal}")
+        print("=" * 40)
+        return
+
+    # goal 파라미터 필수 체크
+    if not args.goal:
+        print("❌ 오류: --goal 파라미터는 필수입니다.")
+        print(f"사용 가능한 값: {', '.join(list_available_parsers())}")
+        print("\n사용 예시:")
+        print("  python transform_spec_size.py --goal 크기작업")
+        sys.exit(1)
+
     truncate_before_insert = not args.no_truncate
     verbose = not args.quiet
+    goal = args.goal
 
     print("\n🚀 PostgreSQL 스펙 데이터 변환 파이프라인 (검증 규칙 기반)")
     print("="*80)
@@ -1065,9 +832,10 @@ def main():
     print("\n" + "="*80)
     print("실행 설정 확인")
     print("="*80)
+    print(f"파싱 목적 (goal): {goal}")
     print(f"Staging 테이블: {STAGING_TABLE}")
     print(f"소스 테이블: {SOURCE_TABLE}")
-    print(f"Mod 테이블: {MOD_TABLE}")
+    print(f"Result 테이블: {MOD_TABLE}")
     print(f"기존 데이터 삭제: {'예' if truncate_before_insert else '아니오'}")
     print(f"상세 출력: {'예' if verbose else '아니오'}")
 
@@ -1086,6 +854,7 @@ def main():
         # 파이프라인 실행
         success = process_spec_data_with_validation(
             engine=engine,
+            goal=goal,
             truncate_before_insert=truncate_before_insert,
             verbose=verbose
         )
