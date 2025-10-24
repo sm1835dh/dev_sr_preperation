@@ -99,14 +99,14 @@ def load_validation_rules(engine, goal):
     - DataFrame with validation rules
     """
     try:
-        query = f"""
+        query = text(f"""
         SELECT disp_lv1, disp_lv2, disp_lv3, disp_nm1, disp_nm2,
                target_disp_nm2, dimension_type, is_target, is_completed, goal
         FROM {STAGING_TABLE}
         WHERE is_target = true
           AND goal = :goal
           AND (is_completed = false OR is_completed IS NULL)
-        """
+        """)
         df = pd.read_sql(query, engine, params={'goal': goal})
         print(f"✅ 검증 규칙 {len(df)}개 로드 완료 (is_target=true, goal='{goal}', is_completed=false)")
         return df
@@ -282,14 +282,37 @@ def save_to_mod_table(engine, df_parsed):
             'dimension_type', 'parsed_value'
         ]
 
+        # resolution_type 컬럼이 있는 경우 추가
+        if 'resolution_type' in df_parsed.columns:
+            duplicate_check_cols.append('resolution_type')
+
         # 기존 데이터 조회 (중복 체크용)
         try:
-            existing_query = f"""
-                SELECT mdl_code, goods_nm, category_lv1, category_lv2,
-                       disp_nm1, disp_nm2, value, target_disp_nm2,
-                       dimension_type, parsed_value
-                FROM {MOD_TABLE}
-            """
+            # resolution_type 컬럼 존재 여부 확인
+            check_column_query = text("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = :table_name
+                AND column_name = 'resolution_type'
+            """)
+            col_result = pd.read_sql(check_column_query, engine, params={'table_name': MOD_TABLE.lower()})
+
+            if not col_result.empty:
+                # resolution_type 컬럼이 있는 경우
+                existing_query = f"""
+                    SELECT mdl_code, goods_nm, category_lv1, category_lv2,
+                           disp_nm1, disp_nm2, value, target_disp_nm2,
+                           dimension_type, parsed_value, resolution_type
+                    FROM {MOD_TABLE}
+                """
+            else:
+                # resolution_type 컬럼이 없는 경우
+                existing_query = f"""
+                    SELECT mdl_code, goods_nm, category_lv1, category_lv2,
+                           disp_nm1, disp_nm2, value, target_disp_nm2,
+                           dimension_type, parsed_value
+                    FROM {MOD_TABLE}
+                """
             df_existing = pd.read_sql(existing_query, engine)
         except Exception as e:
             # 테이블이 없거나 비어있는 경우
@@ -315,6 +338,10 @@ def save_to_mod_table(engine, df_parsed):
                 'dimension_type': row_dict.get('dimension_type'),
                 'parsed_value': row_dict.get('parsed_value')
             }
+
+            # resolution_type이 있는 경우 추가
+            if 'resolution_type' in row_dict:
+                check_data['resolution_type'] = row_dict.get('resolution_type')
 
             # 중복 체크
             is_duplicate = False
@@ -355,6 +382,10 @@ def save_to_mod_table(engine, df_parsed):
                     'parsed_value': row_dict.get('parsed_value'),
                     'needs_check': row_dict.get('needs_check', False)
                 }
+
+                # resolution_type이 있는 경우 추가
+                if 'resolution_type' in row_dict:
+                    insert_data['resolution_type'] = row_dict.get('resolution_type')
                 rows_to_insert.append(insert_data)
 
                 # 메모리상의 기존 데이터에도 추가 (후속 중복 체크를 위해)
