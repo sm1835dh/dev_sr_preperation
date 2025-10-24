@@ -180,7 +180,7 @@ def truncate_table(engine, table_name):
 
 def update_staging_table(engine, validation_rules_df, parsed_results, dimension_summaries):
     """
-    staging 테이블의 is_completed 값과 dimension_type 업데이트
+    staging 테이블의 is_completed 값, dimension_type, from_disp_nm2 업데이트
 
     Parameters:
     - engine: SQLAlchemy engine
@@ -198,7 +198,11 @@ def update_staging_table(engine, validation_rules_df, parsed_results, dimension_
                     dimension_list = dimension_summaries.get(rule_id, [])
                     dimension_str = str(dimension_list) if dimension_list else None
 
-                    # 파싱 성공한 경우 is_completed와 dimension_type 업데이트
+                    # from_disp_nm1, from_disp_nm2 정보 준비 (디버깅용)
+                    from_disp_nm1 = str(rule['disp_nm1']) if pd.notna(rule['disp_nm1']) else None
+                    from_disp_nm2 = str(rule['disp_nm2']) if pd.notna(rule['disp_nm2']) else None
+
+                    # 파싱 성공한 경우 is_completed, dimension_type, from_disp_nm1, from_disp_nm2 업데이트
                     conditions = []
                     params = {}
 
@@ -211,18 +215,26 @@ def update_staging_table(engine, validation_rules_df, parsed_results, dimension_
 
                     where_clause = " AND ".join(conditions)
 
+                    # 모든 정보 포함한 업데이트 (PostgreSQL 문법)
+                    params['from_disp_nm1'] = from_disp_nm1
+                    params['from_disp_nm2'] = from_disp_nm2
+
                     if dimension_str:
                         params['dimension_type'] = dimension_str
                         update_query = text(f"""
                             UPDATE {STAGING_TABLE}
                             SET is_completed = true,
-                                dimension_type = :dimension_type
+                                dimension_type = :dimension_type,
+                                from_disp_nm1 = :from_disp_nm1,
+                                from_disp_nm2 = :from_disp_nm2
                             WHERE {where_clause}
                         """)
                     else:
                         update_query = text(f"""
                             UPDATE {STAGING_TABLE}
-                            SET is_completed = true
+                            SET is_completed = true,
+                                from_disp_nm1 = :from_disp_nm1,
+                                from_disp_nm2 = :from_disp_nm2
                             WHERE {where_clause}
                         """)
 
@@ -813,13 +825,191 @@ def process_spec_data_with_validation(engine, truncate_before_insert=True, verbo
             print(f"  - 처리된 검증 규칙: {successful_rules}/{total_rules}개")
             print(f"  - 파싱된 dimension 값: {len(df_parsed)}개")
 
-            # mdl_code별 생성된 rows 통계
+            # DB에서 실제 저장된 데이터를 기준으로 (mdl_code, goods_nm)별 통계 생성
+            print(f"\n📈 제품별 DB 저장 rows 통계 (mdl_code + goods_nm 조합 기준):")
+
+            # 현재 처리된 제품들의 조합
+            unique_products = df_parsed[['mdl_code', 'goods_nm']].drop_duplicates()
+
+            try:
+                # DB에서 실제 저장된 데이터 조회 - mdl_code와 goods_nm 조합으로
+                actual_stats_query = f"""
+                    SELECT mdl_code, goods_nm, COUNT(*) as row_count
+                    FROM {MOD_TABLE}
+                    GROUP BY mdl_code, goods_nm
+                """
+                df_actual_stats = pd.read_sql(actual_stats_query, engine)
+
+                # 현재 처리된 제품들만 필터링
+                df_actual_stats_filtered = df_actual_stats.merge(
+                    unique_products,
+                    on=['mdl_code', 'goods_nm'],
+                    how='inner'
+                )
+
+                if len(df_actual_stats_filtered) > 0:
+                    # DB 기준 통계 계산
+                    df_actual_stats_filtered['product_key'] = df_actual_stats_filtered['mdl_code'] + '_' + df_actual_stats_filtered['goods_nm']
+                    product_row_counts = df_actual_stats_filtered.set_index('product_key')['row_count']
+                    product_stats = product_row_counts.value_counts().sort_index()
+
+                    print(f"  DB에 실제 저장된 제품별 통계:")
+                    for row_count, product_count in product_stats.items():
+                        print(f"  - {row_count}개 row 저장: {product_count}개 제품")
+                    print(f"  - 전체 제품 수: {len(df_actual_stats_filtered)}개")
+
+                    # mdl_code_row_counts를 product 기준으로 재설정
+                    mdl_code_row_counts = product_row_counts
+                else:
+                    # 파싱된 데이터 기준으로 fallback
+                    df_parsed['product_key'] = df_parsed['mdl_code'] + '_' + df_parsed['goods_nm']
+                    product_row_counts = df_parsed.groupby('product_key').size()
+                    product_stats = product_row_counts.value_counts().sort_index()
+
+                    print(f"  파싱된 데이터 기준 (DB 조회 실패):")
+                    for row_count, product_count in product_stats.items():
+                        print(f"  - {row_count}개 row 생성: {product_count}개 제품")
+                    print(f"  - 전체 제품 수: {df_parsed[['mdl_code', 'goods_nm']].drop_duplicates().shape[0]}개")
+
+                    mdl_code_row_counts = product_row_counts
+
+            except Exception as e:
+                print(f"  ⚠️ DB 통계 조회 실패: {e}")
+                # 파싱된 데이터 기준으로 fallback
+                df_parsed['product_key'] = df_parsed['mdl_code'] + '_' + df_parsed['goods_nm']
+                product_row_counts = df_parsed.groupby('product_key').size()
+                product_stats = product_row_counts.value_counts().sort_index()
+
+                print(f"  파싱된 데이터 기준:")
+                for row_count, product_count in product_stats.items():
+                    print(f"  - {row_count}개 row 생성: {product_count}개 제품")
+                print(f"  - 전체 제품 수: {df_parsed[['mdl_code', 'goods_nm']].drop_duplicates().shape[0]}개")
+
+                mdl_code_row_counts = product_row_counts
+
+            # 3개가 아닌 제품들 출력 (DB 기준 또는 파싱 데이터 기준)
             if len(df_parsed) > 0:
-                mdl_code_stats = df_parsed.groupby('mdl_code').size().value_counts().sort_index()
-                print(f"\n📈 mdl_code별 생성 rows 통계:")
-                for row_count, mdl_count in mdl_code_stats.items():
-                    print(f"  - {row_count}개 row 생성: {mdl_count}개 mdl_code")
-                print(f"  - 전체 mdl_code 수: {df_parsed['mdl_code'].nunique()}개")
+                # mdl_code_row_counts가 위에서 설정되었는지 확인 (이제 product_key 기준)
+                if 'mdl_code_row_counts' not in locals():
+                    df_parsed['product_key'] = df_parsed['mdl_code'] + '_' + df_parsed['goods_nm']
+                    mdl_code_row_counts = df_parsed.groupby('product_key').size()
+
+                # 타임스탬프를 미리 생성
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+                non_three_products = mdl_code_row_counts[mdl_code_row_counts != 3]
+                if len(non_three_products) > 0:
+                    print(f"\n⚠️ 3개가 아닌 row를 가진 제품 목록 ({len(non_three_products)}개):")
+
+                    # row 수별로 그룹화하여 출력
+                    for row_count in sorted(non_three_products.unique()):
+                        products_with_count = non_three_products[non_three_products == row_count].index.tolist()
+                        print(f"\n  [{row_count}개 row 저장] - {len(products_with_count)}개 제품:")
+
+                        # 제품별 데이터 정보 출력
+                        for product_key in products_with_count[:10]:  # 처음 10개만 표시
+                            # product_key에서 mdl_code 추출
+                            if 'product_key' not in df_parsed.columns:
+                                df_parsed['product_key'] = df_parsed['mdl_code'] + '_' + df_parsed['goods_nm']
+
+                            # 해당 제품의 데이터 샘플 정보 가져오기
+                            product_data = df_parsed[df_parsed['product_key'] == product_key]
+                            if len(product_data) > 0:
+                                sample_data = product_data.iloc[0]
+                                mdl_code = sample_data.get('mdl_code', 'N/A')
+                                goods_nm = sample_data.get('goods_nm', 'N/A')
+                                disp_nm2 = sample_data.get('disp_nm2', 'N/A')
+                                value = sample_data.get('value', 'N/A')
+
+                                # dimension_types 리스트
+                                dimension_types = product_data['dimension_type'].tolist()
+
+                                print(f"    • {mdl_code}: {goods_nm[:30]}... | {disp_nm2[:20]}...")
+                                print(f"      값: {value[:50]}..." if len(str(value)) > 50 else f"      값: {value}")
+                                print(f"      파싱된 타입: {dimension_types}")
+
+                        if len(products_with_count) > 10:
+                            print(f"    ... 외 {len(products_with_count) - 10}개 더 있음")
+
+                    # 3개가 아닌 row를 가진 제품 목록을 파일로 저장
+                    non_standard_file = f"non_standard_products_{timestamp}.csv"
+
+                    # 데이터 준비 - DB 실제 데이터와 파싱 데이터 병합
+                    non_standard_data = []
+
+                    if 'product_key' not in df_parsed.columns:
+                        df_parsed['product_key'] = df_parsed['mdl_code'] + '_' + df_parsed['goods_nm']
+
+                    for product_key in non_three_products.index:
+                        # 파싱 데이터에서 정보 가져오기
+                        product_data = df_parsed[df_parsed['product_key'] == product_key]
+                        # DB 기준 row count 사용
+                        row_count = non_three_products[product_key]
+
+                        if len(product_data) > 0:
+                            sample_row = product_data.iloc[0]
+                            dimension_types = sorted(product_data['dimension_type'].tolist())
+
+                            non_standard_data.append({
+                                'mdl_code': sample_row.get('mdl_code', ''),
+                                'goods_nm': sample_row.get('goods_nm', ''),
+                                'disp_nm1': sample_row.get('disp_nm1', ''),
+                                'disp_nm2': sample_row.get('disp_nm2', ''),
+                                'value': sample_row.get('value', ''),
+                                'target_disp_nm2': sample_row.get('target_disp_nm2', ''),
+                                'row_count': row_count,
+                                'dimension_types': ', '.join(dimension_types),
+                                'category_lv1': sample_row.get('category_lv1', ''),
+                                'category_lv2': sample_row.get('category_lv2', '')
+                            })
+
+                    # CSV로 저장
+                    if len(non_standard_data) > 0:
+                        df_non_standard = pd.DataFrame(non_standard_data)
+                        df_non_standard = df_non_standard.sort_values(['row_count', 'mdl_code', 'goods_nm'])
+                        df_non_standard.to_csv(non_standard_file, index=False, encoding='utf-8-sig')
+
+                        print(f"\n💾 3개가 아닌 row를 가진 제품 목록을 '{non_standard_file}' 파일로 저장했습니다.")
+                        print(f"   총 {len(non_three_products)}개 제품, 파일에는 상세 정보 포함")
+
+                # 모든 제품별 통계를 파일로 저장 (3개 row 포함)
+                all_product_stats_file = f"all_product_stats_{timestamp}.csv"
+                all_product_data = []
+
+                # product_key 컬럼 확인 및 생성
+                if 'product_key' not in df_parsed.columns:
+                    df_parsed['product_key'] = df_parsed['mdl_code'] + '_' + df_parsed['goods_nm']
+
+                for product_key in mdl_code_row_counts.index:
+                    product_data = df_parsed[df_parsed['product_key'] == product_key]
+                    row_count = mdl_code_row_counts[product_key]
+
+                    if len(product_data) > 0:
+                        sample_row = product_data.iloc[0]
+                        dimension_types = sorted(product_data['dimension_type'].tolist())
+
+                        all_product_data.append({
+                            'mdl_code': sample_row.get('mdl_code', ''),
+                            'goods_nm': sample_row.get('goods_nm', ''),
+                            'category_lv1': sample_row.get('category_lv1', ''),
+                            'category_lv2': sample_row.get('category_lv2', ''),
+                            'disp_nm1': sample_row.get('disp_nm1', ''),
+                            'disp_nm2': sample_row.get('disp_nm2', ''),
+                            'value': sample_row.get('value', ''),
+                            'target_disp_nm2': sample_row.get('target_disp_nm2', ''),
+                            'row_count': row_count,
+                            'is_standard': 'O' if row_count == 3 else 'X',
+                            'dimension_types': ', '.join(dimension_types)
+                        })
+
+                # DataFrame 생성 및 저장
+                if len(all_product_data) > 0:
+                    df_all_stats = pd.DataFrame(all_product_data)
+                    df_all_stats = df_all_stats.sort_values(['is_standard', 'row_count', 'mdl_code', 'goods_nm'])
+                    df_all_stats.to_csv(all_product_stats_file, index=False, encoding='utf-8-sig')
+
+                    print(f"💾 전체 제품별 통계를 '{all_product_stats_file}' 파일로 저장했습니다.")
+                    print(f"   총 {len(mdl_code_row_counts)}개 제품(mdl_code + goods_nm)의 상세 정보 포함")
 
             print(f"\n  - Staging 테이블 업데이트: 완료")
             print(f"  - Mod 테이블 저장: 완료")
