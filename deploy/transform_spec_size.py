@@ -408,7 +408,7 @@ def save_to_mod_table(engine, df_parsed):
 
         # validation_rule_id별로 dimension_type 집계 (사용자 확인용)
         rule_summary = df_parsed.groupby('validation_rule_id')['dimension_type'].apply(
-            lambda x: sorted(list(set(x)))
+            lambda x: sorted([item for item in set(x) if item is not None]) + ([None] if None in set(x) else [])
         )
 
         print(f"📊 처리된 규칙별 dimension 타입:")
@@ -583,7 +583,7 @@ def process_spec_data_with_validation(engine, goal, truncate_before_insert=True,
         dimension_summaries = {}
         if len(df_parsed) > 0:
             dimension_summaries = df_parsed.groupby('validation_rule_id')['dimension_type'].apply(
-                lambda x: sorted(list(set(x)))
+                lambda x: sorted([item for item in set(x) if item is not None]) + ([None] if None in set(x) else [])
             ).to_dict()
 
         success_staging = update_staging_table(engine, validation_rules, parsed_results, dimension_summaries)
