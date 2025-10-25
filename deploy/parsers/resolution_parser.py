@@ -152,12 +152,12 @@ class ResolutionParser(BaseParser):
                     'parsed_value': float(height),
                     'needs_check': False
                 })
-                # resolution_type을 dimension_type으로 저장
+                # resolution_type을 dimension_type='resolution_name'으로 저장
                 if resolution_type:
                     parsed_rows.append({
                         **base_row,
-                        'dimension_type': resolution_type,
-                        'parsed_value': None,  # 또는 적절한 값
+                        'dimension_type': 'resolution_name',
+                        'parsed_string_value': resolution_type,
                         'needs_check': False
                     })
                 return parsed_rows, True, False
@@ -196,12 +196,12 @@ class ResolutionParser(BaseParser):
                     'needs_check': False
                 })
 
-                # resolution_type이 있으면 dimension_type으로 추가
+                # resolution_type이 있으면 dimension_type='resolution_name'으로 추가
                 if resolution_type:
                     parsed_rows.append({
                         **base_row,
-                        'dimension_type': resolution_type,
-                        'parsed_value': None,  # 또는 적절한 값
+                        'dimension_type': 'resolution_name',
+                        'parsed_string_value': resolution_type,
                         'needs_check': False
                     })
 
@@ -230,11 +230,11 @@ class ResolutionParser(BaseParser):
                 'parsed_value': float(height),
                 'needs_check': False
             })
-            # resolution_type을 dimension_type으로 저장
+            # resolution_type을 dimension_type='resolution_name'으로 저장
             parsed_rows.append({
                 **base_row,
-                'dimension_type': resolution_type,
-                'parsed_value': None,  # 또는 적절한 값
+                'dimension_type': 'resolution_name',
+                'parsed_string_value': resolution_type,
                 'needs_check': False
             })
             return parsed_rows, True, False

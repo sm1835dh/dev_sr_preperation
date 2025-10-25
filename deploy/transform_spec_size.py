@@ -282,31 +282,31 @@ def save_to_mod_table(engine, df_parsed):
             'dimension_type', 'parsed_value'
         ]
 
-        # resolution_type 컬럼이 있는 경우 추가
-        if 'resolution_type' in df_parsed.columns:
-            duplicate_check_cols.append('resolution_type')
+        # parsed_string_value 컬럼이 있는 경우 추가
+        if 'parsed_string_value' in df_parsed.columns:
+            duplicate_check_cols.append('parsed_string_value')
 
         # 기존 데이터 조회 (중복 체크용)
         try:
-            # resolution_type 컬럼 존재 여부 확인
+            # parsed_string_value 컬럼 존재 여부 확인
             check_column_query = text("""
                 SELECT column_name
                 FROM information_schema.columns
                 WHERE table_name = :table_name
-                AND column_name = 'resolution_type'
+                AND column_name = 'parsed_string_value'
             """)
             col_result = pd.read_sql(check_column_query, engine, params={'table_name': MOD_TABLE.lower()})
 
             if not col_result.empty:
-                # resolution_type 컬럼이 있는 경우
+                # parsed_string_value 컬럼이 있는 경우
                 existing_query = f"""
                     SELECT mdl_code, goods_nm, category_lv1, category_lv2,
                            disp_nm1, disp_nm2, value, target_disp_nm2,
-                           dimension_type, parsed_value, resolution_type
+                           dimension_type, parsed_value, parsed_string_value
                     FROM {MOD_TABLE}
                 """
             else:
-                # resolution_type 컬럼이 없는 경우
+                # parsed_string_value 컬럼이 없는 경우
                 existing_query = f"""
                     SELECT mdl_code, goods_nm, category_lv1, category_lv2,
                            disp_nm1, disp_nm2, value, target_disp_nm2,
@@ -339,9 +339,9 @@ def save_to_mod_table(engine, df_parsed):
                 'parsed_value': row_dict.get('parsed_value')
             }
 
-            # resolution_type이 있는 경우 추가
-            if 'resolution_type' in row_dict:
-                check_data['resolution_type'] = row_dict.get('resolution_type')
+            # parsed_string_value가 있는 경우 추가
+            if 'parsed_string_value' in row_dict:
+                check_data['parsed_string_value'] = row_dict.get('parsed_string_value')
 
             # 중복 체크
             is_duplicate = False
@@ -380,12 +380,14 @@ def save_to_mod_table(engine, df_parsed):
                     'target_disp_nm2': row_dict.get('target_disp_nm2'),
                     'dimension_type': row_dict.get('dimension_type'),
                     'parsed_value': row_dict.get('parsed_value'),
-                    'needs_check': row_dict.get('needs_check', False)
+                    'needs_check': row_dict.get('needs_check', False),
+                    'goal': row_dict.get('goal')  # goal 필드 추가
                 }
 
-                # resolution_type이 있는 경우 추가
-                if 'resolution_type' in row_dict:
-                    insert_data['resolution_type'] = row_dict.get('resolution_type')
+                # parsed_string_value가 있는 경우 추가
+                if 'parsed_string_value' in row_dict:
+                    insert_data['parsed_string_value'] = row_dict.get('parsed_string_value')
+
                 rows_to_insert.append(insert_data)
 
                 # 메모리상의 기존 데이터에도 추가 (후속 중복 체크를 위해)
@@ -510,10 +512,11 @@ def process_spec_data_with_validation(engine, goal, truncate_before_insert=True,
             rule_id = row['validation_rule_id']
 
             if success and parsed_rows:
-                # validation_rule_id와 target_disp_nm2 추가
+                # validation_rule_id, target_disp_nm2, goal 추가
                 for parsed_row in parsed_rows:
                     parsed_row['validation_rule_id'] = rule_id
                     parsed_row['target_disp_nm2'] = row['target_disp_nm2']
+                    parsed_row['goal'] = goal  # 함수 파라미터에서 직접 가져옴
 
                 parsed_data.extend(parsed_rows)
                 parsed_results[rule_id] = True
@@ -818,8 +821,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f'''
 예제:
-  python transform_spec_size.py --goal 크기작업                    # 크기 파싱 실행
-  python transform_spec_size.py --goal 크기작업 --no-truncate      # mod 테이블 데이터 유지
+  python transform_spec_size.py --goal 크기작업                    # 크기 파싱 실행 (기존 데이터 유지)
+  python transform_spec_size.py --goal 크기작업 --truncate         # mod 테이블 데이터 삭제 후 실행
   python transform_spec_size.py --goal 크기작업 --quiet            # 간략한 출력
   python transform_spec_size.py --list-parsers                     # 사용 가능한 파서 목록 보기
 
@@ -829,7 +832,7 @@ def main():
     )
 
     parser.add_argument('--goal', type=str, help='파싱 목적 (필수)')
-    parser.add_argument('--no-truncate', action='store_true', help='mod 테이블 기존 데이터 유지')
+    parser.add_argument('--truncate', action='store_true', help='mod 테이블 기존 데이터 삭제 (기본값: 유지)')
     parser.add_argument('--quiet', '-q', action='store_true', help='간략한 출력만 표시')
     parser.add_argument('--list-parsers', action='store_true', help='사용 가능한 파서 목록 표시')
 
@@ -852,7 +855,7 @@ def main():
         print("  python transform_spec_size.py --goal 크기작업")
         sys.exit(1)
 
-    truncate_before_insert = not args.no_truncate
+    truncate_before_insert = args.truncate  # 기본값은 False (데이터 유지)
     verbose = not args.quiet
     goal = args.goal
 
