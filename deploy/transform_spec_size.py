@@ -75,7 +75,7 @@ load_dotenv()
 STAGING_TABLE = 'kt_spec_validation_table_v03_20251023_staging'
 SOURCE_TABLE = 'kt_spec_validation_table_v03_20251023'
 # 개발 중에는 temp_result 사용, 프로덕션에서는 원래 테이블 사용
-USE_TEMP_TABLE = False  # 개발 완료 후 False로 변경
+USE_TEMP_TABLE = True  # 개발 완료 후 False로 변경
 MOD_TABLE = 'temp_result' if USE_TEMP_TABLE else 'kt_spec_validation_table_v03_20251023_result'
 
 def get_sqlalchemy_engine():

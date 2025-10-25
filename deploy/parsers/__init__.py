@@ -8,6 +8,7 @@ from .memory_parser import MemoryParser
 from .weight_parser import WeightParser
 from .energy_efficiency_parser import EnergyEfficiencyParser
 from .power_consumption_parser import PowerConsumptionParser
+from .capacity_parser import CapacityParser
 
 # 파서 레지스트리 - goal 값에 따른 파서 매핑
 PARSER_REGISTRY = {
@@ -17,6 +18,7 @@ PARSER_REGISTRY = {
     '무게': WeightParser,
     '소비효율': EnergyEfficiencyParser,
     '소비전력': PowerConsumptionParser,
+    '용량': CapacityParser,
     # 향후 추가될 파서들
     # '색상작업': ColorParser,
     # '소재작업': MaterialParser,
