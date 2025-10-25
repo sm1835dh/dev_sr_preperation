@@ -74,7 +74,9 @@ load_dotenv()
 # 테이블 이름 정의
 STAGING_TABLE = 'kt_spec_validation_table_v03_20251023_staging'
 SOURCE_TABLE = 'kt_spec_validation_table_v03_20251023'
-MOD_TABLE = 'kt_spec_validation_table_v03_20251023_result'
+# 개발 중에는 temp_result 사용, 프로덕션에서는 원래 테이블 사용
+USE_TEMP_TABLE = False  # 개발 완료 후 False로 변경
+MOD_TABLE = 'temp_result' if USE_TEMP_TABLE else 'kt_spec_validation_table_v03_20251023_result'
 
 def get_sqlalchemy_engine():
     """SQLAlchemy 엔진 생성"""
@@ -725,7 +727,8 @@ def process_spec_data_with_validation(engine, goal, truncate_before_insert=True,
 
                         if len(product_data) > 0:
                             sample_row = product_data.iloc[0]
-                            dimension_types = sorted(product_data['dimension_type'].tolist())
+                            # None 값을 필터링하고 문자열로 변환
+                            dimension_types = sorted([str(dt) for dt in product_data['dimension_type'].tolist() if dt is not None])
 
                             non_standard_data.append({
                                 'mdl_code': sample_row.get('mdl_code', ''),
@@ -735,7 +738,7 @@ def process_spec_data_with_validation(engine, goal, truncate_before_insert=True,
                                 'value': sample_row.get('value', ''),
                                 'target_disp_nm2': sample_row.get('target_disp_nm2', ''),
                                 'row_count': row_count,
-                                'dimension_types': ', '.join(dimension_types),
+                                'dimension_types': ', '.join(dimension_types) if dimension_types else 'none',
                                 'category_lv1': sample_row.get('category_lv1', ''),
                                 'category_lv2': sample_row.get('category_lv2', '')
                             })
@@ -763,7 +766,8 @@ def process_spec_data_with_validation(engine, goal, truncate_before_insert=True,
 
                     if len(product_data) > 0:
                         sample_row = product_data.iloc[0]
-                        dimension_types = sorted(product_data['dimension_type'].tolist())
+                        # None 값을 필터링하고 문자열로 변환
+                        dimension_types = sorted([str(dt) for dt in product_data['dimension_type'].tolist() if dt is not None])
 
                         all_product_data.append({
                             'mdl_code': sample_row.get('mdl_code', ''),
@@ -776,7 +780,7 @@ def process_spec_data_with_validation(engine, goal, truncate_before_insert=True,
                             'target_disp_nm2': sample_row.get('target_disp_nm2', ''),
                             'row_count': row_count,
                             'is_standard': 'O' if row_count == 3 else 'X',
-                            'dimension_types': ', '.join(dimension_types)
+                            'dimension_types': ', '.join(dimension_types) if dimension_types else 'none'
                         })
 
                 # DataFrame 생성 및 저장
