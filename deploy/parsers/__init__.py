@@ -5,12 +5,14 @@
 from .size_parser import SizeParser
 from .resolution_parser import ResolutionParser
 from .memory_parser import MemoryParser
+from .weight_parser import WeightParser
 
 # 파서 레지스트리 - goal 값에 따른 파서 매핑
 PARSER_REGISTRY = {
     '크기작업': SizeParser,
     '해상도': ResolutionParser,
     '메모리': MemoryParser,
+    '무게': WeightParser,
     # 향후 추가될 파서들
     # '색상작업': ColorParser,
     # '소재작업': MaterialParser,
