@@ -153,8 +153,9 @@ class PowerConsumptionParser(BaseParser):
                     parsed_num = float(clean_num)
 
                     new_row = base_row.copy()
-                    new_row['dimension_type'] = dim_type
+                    new_row['dimension_type'] = None  # width/height/depth만 허용하므로 None
                     new_row['parsed_value'] = parsed_num
+                    new_row['parsed_symbols'] = dim_type if dim_type else 'W'  # 타입 정보를 parsed_symbols에 저장
                     new_row['needs_check'] = False
                     parsed_rows.append(new_row)
                 except ValueError:
@@ -226,8 +227,9 @@ class PowerConsumptionParser(BaseParser):
                     parsed_num = float(clean_num)
 
                     new_row = base_row.copy()
-                    new_row['dimension_type'] = dim_type
+                    new_row['dimension_type'] = None  # width/height/depth만 허용하므로 None
                     new_row['parsed_value'] = parsed_num
+                    new_row['parsed_symbols'] = dim_type if dim_type else 'W'  # 타입 정보를 parsed_symbols에 저장
                     new_row['needs_check'] = False
                     parsed_rows.append(new_row)
                 except ValueError:
@@ -312,8 +314,9 @@ class PowerConsumptionParser(BaseParser):
                 dim_type = self.identify_type(value)
 
                 new_row = base_row.copy()
-                new_row['dimension_type'] = dim_type
+                new_row['dimension_type'] = None  # width/height/depth만 허용하므로 None
                 new_row['parsed_value'] = max_value
+                new_row['parsed_symbols'] = dim_type if dim_type else 'W'  # 타입 정보를 parsed_symbols에 저장
                 new_row['needs_check'] = False
                 parsed_rows.append(new_row)
 
@@ -372,8 +375,9 @@ class PowerConsumptionParser(BaseParser):
 
         # dimension_type이 None이어도 파싱 성공으로 처리 (단일 값인 경우)
         new_row = base_row.copy()
-        new_row['dimension_type'] = dim_type  # None일 수 있음
+        new_row['dimension_type'] = None  # width/height/depth만 허용하므로 None
         new_row['parsed_value'] = max_value
+        new_row['parsed_symbols'] = dim_type if dim_type else 'W'  # 타입 정보를 parsed_symbols에 저장
         new_row['needs_check'] = False
         parsed_rows.append(new_row)
 

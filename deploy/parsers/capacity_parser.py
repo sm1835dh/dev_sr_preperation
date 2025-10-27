@@ -125,8 +125,9 @@ class CapacityParser(BaseParser):
                 dim_type = clothing_type
 
                 new_row = base_row.copy()
-                new_row['dimension_type'] = dim_type
+                new_row['dimension_type'] = None  # width/height/depth만 허용하므로 None
                 new_row['parsed_value'] = number
+                new_row['parsed_symbols'] = dim_type  # 의류 타입을 parsed_symbols에 저장
                 new_row['needs_check'] = False
                 parsed_rows.append(new_row)
 
@@ -171,8 +172,9 @@ class CapacityParser(BaseParser):
                 try:
                     number = float(num_str)
                     new_row = base_row.copy()
-                    new_row['dimension_type'] = unit_type
+                    new_row['dimension_type'] = None  # width/height/depth만 허용하므로 None
                     new_row['parsed_value'] = number
+                    new_row['parsed_symbols'] = unit_type  # 단위를 parsed_symbols에 저장
                     new_row['needs_check'] = False
                     parsed_rows.append(new_row)
                     return parsed_rows, True, False
@@ -187,8 +189,9 @@ class CapacityParser(BaseParser):
         if inyong_match:
             number = float(inyong_match.group(1))
             new_row = base_row.copy()
-            new_row['dimension_type'] = '인용'
+            new_row['dimension_type'] = None  # width/height/depth만 허용하므로 None
             new_row['parsed_value'] = number
+            new_row['parsed_symbols'] = '인용'  # 단위를 parsed_symbols에 저장
             new_row['needs_check'] = False
             parsed_rows.append(new_row)
             return parsed_rows, True, False
@@ -203,8 +206,9 @@ class CapacityParser(BaseParser):
             try:
                 number = float(num_str)
                 new_row = base_row.copy()
-                new_row['dimension_type'] = None
+                new_row['dimension_type'] = None  # width/height/depth만 허용하므로 None
                 new_row['parsed_value'] = number
+                new_row['parsed_symbols'] = None  # 단위가 없는 경우
                 new_row['needs_check'] = False
                 parsed_rows.append(new_row)
                 return parsed_rows, True, False

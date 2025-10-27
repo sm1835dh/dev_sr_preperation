@@ -154,6 +154,37 @@ class WeightParser(BaseParser):
 
         return None
 
+    def extract_weight_unit(self, text):
+        """
+        텍스트에서 무게 단위 추출
+
+        Parameters:
+        -----------
+        text : str
+            무게 정보가 포함된 텍스트
+
+        Returns:
+        --------
+        str : 추출된 단위 ('g', 'kg', 'ml' 등)
+        """
+        if not text:
+            return 'g'  # 기본값
+
+        # ml 단위 체크
+        if re.search(r'ml', text, re.IGNORECASE):
+            return 'ml'
+
+        # kg 단위 체크 (ㄱ, ㎏, Kg, KG 포함)
+        if re.search(r'(?:kg|ㄱ|㎏|Kg|KG)', text, re.IGNORECASE):
+            return 'kg'
+
+        # g 단위 체크
+        if re.search(r'g\b', text, re.IGNORECASE):
+            return 'g'
+
+        # 기본값
+        return 'g'
+
     def parse(self, row):
         """
         무게 파싱 함수
@@ -181,11 +212,16 @@ class WeightParser(BaseParser):
         if weight_value is not None:
             # 파싱 성공
             base_row = row.to_dict()
+
+            # 원본 값에서 단위 추출 (g, kg 등)
+            weight_unit = self.extract_weight_unit(value)
+
             parsed_row = {
                 **base_row,
-                'dimension_type': None,  # 무게는 dimension_type이 없음
+                'dimension_type': None,  # width/height/depth만 허용하므로 None
                 'parsed_value': weight_value,
                 'parsed_string_value': str(weight_value),  # 숫자를 문자열로도 저장
+                'parsed_symbols': weight_unit,  # 무게 단위를 parsed_symbols에 저장
                 'needs_check': False
             }
             parsed_rows.append(parsed_row)

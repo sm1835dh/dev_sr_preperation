@@ -87,9 +87,10 @@ class MemoryParser(BaseParser):
                 'symbols': row.get('symbols'),
                 'new_value': row.get('new_value'),
                 'target_disp_nm2': row.get('target_disp_nm2', '메모리'),
-                'dimension_type': 'memory',  # 메모리 타입으로 명시
+                'dimension_type': None,  # width/height/depth만 허용하므로 None
                 'parsed_value': memory_size,
                 'parsed_string_value': None,
+                'parsed_symbols': 'GB',  # 메모리 단위를 parsed_symbols에 저장
                 'needs_check': False,
                 'goal': '메모리'
             }

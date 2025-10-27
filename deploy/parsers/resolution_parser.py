@@ -143,6 +143,7 @@ class ResolutionParser(BaseParser):
                     **base_row,
                     'dimension_type': 'width',
                     'parsed_value': float(width),
+                    'parsed_symbols': 'px',
                     'needs_check': False
                 })
                 # height
@@ -150,14 +151,16 @@ class ResolutionParser(BaseParser):
                     **base_row,
                     'dimension_type': 'height',
                     'parsed_value': float(height),
+                    'parsed_symbols': 'px',
                     'needs_check': False
                 })
-                # resolution_type을 dimension_type='resolution_name'으로 저장
+                # resolution_type을 parsed_symbols로 저장
                 if resolution_type:
                     parsed_rows.append({
                         **base_row,
-                        'dimension_type': 'resolution_name',
+                        'dimension_type': None,
                         'parsed_string_value': resolution_type,
+                        'parsed_symbols': 'resolution_name',
                         'needs_check': False
                     })
                 return parsed_rows, True, False
@@ -185,6 +188,7 @@ class ResolutionParser(BaseParser):
                     **base_row,
                     'dimension_type': 'width',
                     'parsed_value': width,
+                    'parsed_symbols': 'px',
                     'needs_check': False
                 })
 
@@ -193,15 +197,17 @@ class ResolutionParser(BaseParser):
                     **base_row,
                     'dimension_type': 'height',
                     'parsed_value': height,
+                    'parsed_symbols': 'px',
                     'needs_check': False
                 })
 
-                # resolution_type이 있으면 dimension_type='resolution_name'으로 추가
+                # resolution_type이 있으면 parsed_symbols로 추가
                 if resolution_type:
                     parsed_rows.append({
                         **base_row,
-                        'dimension_type': 'resolution_name',
+                        'dimension_type': None,
                         'parsed_string_value': resolution_type,
+                        'parsed_symbols': 'resolution_name',
                         'needs_check': False
                     })
 
@@ -221,6 +227,7 @@ class ResolutionParser(BaseParser):
                 **base_row,
                 'dimension_type': 'width',
                 'parsed_value': float(width),
+                'parsed_symbols': 'px',
                 'needs_check': False
             })
             # height
@@ -228,13 +235,15 @@ class ResolutionParser(BaseParser):
                 **base_row,
                 'dimension_type': 'height',
                 'parsed_value': float(height),
+                'parsed_symbols': 'px',
                 'needs_check': False
             })
-            # resolution_type을 dimension_type='resolution_name'으로 저장
+            # resolution_type을 parsed_symbols로 저장
             parsed_rows.append({
                 **base_row,
-                'dimension_type': 'resolution_name',
+                'dimension_type': None,
                 'parsed_string_value': resolution_type,
+                'parsed_symbols': 'resolution_name',
                 'needs_check': False
             })
             return parsed_rows, True, False

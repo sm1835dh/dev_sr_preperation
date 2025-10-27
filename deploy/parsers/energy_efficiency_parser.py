@@ -156,8 +156,9 @@ class EnergyEfficiencyParser(BaseParser):
             # 등급 정보 추가
             parsed_rows.append({
                 **base_row,
-                'dimension_type': None,  # 요구사항에 따라 None
+                'dimension_type': None,  # width/height/depth만 허용하므로 None
                 'parsed_value': float(grade),
+                'parsed_symbols': '등급',  # 에너지 효율 등급을 parsed_symbols에 저장
                 'needs_check': False
             })
 

@@ -131,6 +131,7 @@ class SizeParser(BaseParser):
                         new_row = base_row.copy()
                         new_row['dimension_type'] = dim_type
                         new_row['parsed_value'] = parsed_num
+                        new_row['parsed_symbols'] = 'mm'  # 크기 단위
                         new_row['needs_check'] = False
                         parsed_rows.append(new_row)
                     except ValueError:
@@ -157,6 +158,7 @@ class SizeParser(BaseParser):
                         new_row = base_row.copy()
                         new_row['dimension_type'] = dim_type
                         new_row['parsed_value'] = parsed_num
+                        new_row['parsed_symbols'] = 'mm'  # 크기 단위
                         new_row['needs_check'] = False
                         parsed_rows.append(new_row)
                     except ValueError:
@@ -209,6 +211,7 @@ class SizeParser(BaseParser):
                                 **base_row,
                                 'dimension_type': dim_type,
                                 'parsed_value': float(nums[i].replace(',', '')),
+                                'parsed_symbols': 'mm',
                                 'needs_check': False
                             })
 
@@ -222,9 +225,9 @@ class SizeParser(BaseParser):
         # 2-1. 3개 값: 가로x높이x깊이 (명시적)
         if '가로' in combined_text and '높이' in combined_text and '깊이' in combined_text and len(nums) >= 3:
             try:
-                parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
-                parsed_rows.append({**base_row, 'dimension_type': 'height', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
-                parsed_rows.append({**base_row, 'dimension_type': 'depth', 'parsed_value': float(nums[2].replace(',', '')), 'needs_check': False})
+                parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'parsed_symbols': 'mm', 'needs_check': False})
+                parsed_rows.append({**base_row, 'dimension_type': 'height', 'parsed_value': float(nums[1].replace(',', '')), 'parsed_symbols': 'mm', 'needs_check': False})
+                parsed_rows.append({**base_row, 'dimension_type': 'depth', 'parsed_value': float(nums[2].replace(',', '')), 'parsed_symbols': 'mm', 'needs_check': False})
                 return parsed_rows, True, False
             except ValueError:
                 pass
@@ -234,9 +237,9 @@ class SizeParser(BaseParser):
             # 높이 키워드가 없어야 함 (우선순위 구분)
             if '높이' not in combined_text and len(nums) >= 2:
                 try:
-                    parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
+                    parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'parsed_symbols': 'mm', 'needs_check': False})
                     # 두께/깊이는 depth
-                    parsed_rows.append({**base_row, 'dimension_type': 'depth', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
+                    parsed_rows.append({**base_row, 'dimension_type': 'depth', 'parsed_value': float(nums[1].replace(',', '')), 'parsed_symbols': 'mm', 'needs_check': False})
                     return parsed_rows, True, False
                 except ValueError:
                     pass
@@ -244,8 +247,8 @@ class SizeParser(BaseParser):
         # 2-3. 2개 값: 너비x높이, 가로x높이
         if ('너비' in combined_text or '가로' in combined_text or '폭' in combined_text) and '높이' in combined_text and len(nums) >= 2:
             try:
-                parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'needs_check': False})
-                parsed_rows.append({**base_row, 'dimension_type': 'height', 'parsed_value': float(nums[1].replace(',', '')), 'needs_check': False})
+                parsed_rows.append({**base_row, 'dimension_type': 'width', 'parsed_value': float(nums[0].replace(',', '')), 'parsed_symbols': 'mm', 'needs_check': False})
+                parsed_rows.append({**base_row, 'dimension_type': 'height', 'parsed_value': float(nums[1].replace(',', '')), 'parsed_symbols': 'mm', 'needs_check': False})
                 return parsed_rows, True, False
             except ValueError:
                 pass
@@ -268,6 +271,7 @@ class SizeParser(BaseParser):
                     new_row = base_row.copy()
                     new_row['dimension_type'] = dim_type
                     new_row['parsed_value'] = float(val.replace(',', ''))
+                    new_row['parsed_symbols'] = 'mm'  # 크기 단위
                     new_row['needs_check'] = True  # 단위가 명확하지 않음
                     parsed_rows.append(new_row)
 
@@ -292,6 +296,7 @@ class SizeParser(BaseParser):
                     new_row = base_row.copy()
                     new_row['dimension_type'] = dim_type
                     new_row['parsed_value'] = float(val.replace(',', ''))
+                    new_row['parsed_symbols'] = 'mm'  # 크기 단위
                     new_row['needs_check'] = True  # 단위가 명확하지 않음
                     parsed_rows.append(new_row)
 
@@ -310,6 +315,7 @@ class SizeParser(BaseParser):
                     base_row = row.to_dict()
                     base_row['dimension_type'] = dim_type
                     base_row['parsed_value'] = parsed_num
+                    base_row['parsed_symbols'] = 'mm'  # 크기 단위
                     base_row['needs_check'] = False
                     parsed_rows.append(base_row)
                     return parsed_rows, True, False
