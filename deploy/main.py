@@ -78,12 +78,16 @@ class DataIngestionPipeline:
                  direct_collection_name: str,
                  metadata_collection_name: str,
                  selected_columns: List[str] = None,
-                 sample_size: int = 10000):
+                 sample_size: int = 10000,
+                 jsonb_fields_to_extract: List[str] = None,
+                 jsonb_column: str = 'product_specification'):
         self.table_name = table_name
         self.direct_collection_name = direct_collection_name
         self.metadata_collection_name = metadata_collection_name
         self.selected_columns = selected_columns or DEFAULT_SELECTED_COLUMNS
         self.sample_size = sample_size
+        self.jsonb_fields_to_extract = jsonb_fields_to_extract or []
+        self.jsonb_column = jsonb_column
 
         # Initialize components
         self.schema_analyzer = SchemaAnalyzer(table_name)
@@ -332,6 +336,43 @@ class DataIngestionPipeline:
                 print("[ERROR] Column statistics collection failed")
                 return False
 
+            # 2.5. Extract JSONB fields if specified
+            if self.jsonb_fields_to_extract:
+                print(f"\n2.5. Extracting JSONB fields from '{self.jsonb_column}'...")
+                jsonb_fields = self.schema_analyzer.extract_jsonb_fields(
+                    jsonb_column=self.jsonb_column,
+                    sample_size=self.sample_size
+                )
+
+                if jsonb_fields:
+                    # Filter requested fields
+                    filtered_jsonb_fields = {}
+                    for field_path, field_info in jsonb_fields.items():
+                        # Check if this field matches any of the requested patterns
+                        sql_path = field_info['sql_path']
+                        for pattern in self.jsonb_fields_to_extract:
+                            if pattern in sql_path or pattern in field_path:
+                                filtered_jsonb_fields[field_path] = field_info
+                                break
+
+                    if filtered_jsonb_fields:
+                        # Convert JSONB fields to DataFrame format
+                        df_jsonb_stats = self.schema_analyzer.get_jsonb_field_statistics(
+                            filtered_jsonb_fields, self.jsonb_column
+                        )
+
+                        # Merge with regular column stats
+                        df_column_stats = pd.concat([df_column_stats, df_jsonb_stats], ignore_index=True)
+                        print(f"   Added {len(df_jsonb_stats)} JSONB fields to processing queue")
+
+                        # Add JSONB field SQL paths to selected_columns
+                        jsonb_column_names = df_jsonb_stats['column_name'].tolist()
+                        self.selected_columns = self.selected_columns + jsonb_column_names
+                    else:
+                        print(f"   No matching JSONB fields found for patterns: {self.jsonb_fields_to_extract}")
+                else:
+                    print("   No JSONB fields found in the column")
+
             # 3. Generate metadata for selected columns
             print(f"\n3. Generating metadata for {len(self.selected_columns)} columns...")
             df_metadata = self._generate_metadata_for_columns(
@@ -510,6 +551,19 @@ def main():
         action='store_true',
         help='Generate table description'
     )
+    parser.add_argument(
+        '--jsonb-fields',
+        type=str,
+        nargs='*',
+        default=[],
+        help='JSONB field patterns to extract (e.g., "무게" "크기" "용량")'
+    )
+    parser.add_argument(
+        '--jsonb-column',
+        type=str,
+        default='product_specification',
+        help='JSONB column name to extract fields from'
+    )
 
     args = parser.parse_args()
 
@@ -519,7 +573,9 @@ def main():
         direct_collection_name=args.direct_collection,
         metadata_collection_name=args.metadata_collection,
         selected_columns=DEFAULT_SELECTED_COLUMNS,
-        sample_size=args.sample_size
+        sample_size=args.sample_size,
+        jsonb_fields_to_extract=args.jsonb_fields,
+        jsonb_column=args.jsonb_column
     )
 
     print("\n" + "=" * 60)
@@ -530,6 +586,9 @@ def main():
     print(f"Metadata Collection: {args.metadata_collection}")
     print(f"Mode: {args.mode}")
     print(f"Sample size: {args.sample_size}")
+    if args.jsonb_fields:
+        print(f"JSONB Fields: {', '.join(args.jsonb_fields)}")
+        print(f"JSONB Column: {args.jsonb_column}")
 
     success = True
 

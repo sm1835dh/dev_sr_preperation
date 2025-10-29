@@ -92,6 +92,13 @@ class OpenAIMetadataGenerator:
     def _build_prompt(self, column_info: Dict, table_context: str,
                       is_numeric: bool, is_string: bool, is_date: bool) -> str:
         """프롬프트 구성"""
+        # Check if this is a JSONB field
+        is_jsonb_field = column_info.get('is_jsonb_field', False)
+
+        if is_jsonb_field:
+            # Special prompt for JSONB fields
+            return self._build_jsonb_field_prompt(column_info, table_context, is_numeric, is_string, is_date)
+
         base_info = f"""
         테이블명: {table_context}
         컬럼 정보:
@@ -120,6 +127,48 @@ class OpenAIMetadataGenerator:
             1. 짧은 설명 (한 줄, 20자 이내)
             2. 상세 설명 (2-3줄, 비즈니스 의미 포함)
             3. 데이터 특성 (NULL 허용 여부, 값 범위 등)"""
+
+        return prompt
+
+    def _build_jsonb_field_prompt(self, column_info: Dict, table_context: str,
+                                  is_numeric: bool, is_string: bool, is_date: bool) -> str:
+        """JSONB 필드를 위한 특별 프롬프트 생성"""
+        sql_path = column_info.get('column_name')  # This contains the SQL path
+        field_name = column_info.get('field_name', '')
+        jsonb_column = column_info.get('jsonb_column', 'product_specification')
+        original_path = column_info.get('original_field_path', '')
+
+        # Get sample values
+        sample_values = column_info.get('values', [])
+        sample_text = ""
+        if sample_values:
+            sample_preview = sample_values[:5]
+            sample_text = f"\n    - 예시 값: {', '.join(str(v) for v in sample_preview)}"
+
+        base_info = f"""
+        테이블명: {table_context}
+        JSONB 필드 정보:
+        - 필드명: {field_name}
+        - JSONB 컬럼: {jsonb_column}
+        - 필드 경로: {original_path}
+        - SQL 조회 경로: {sql_path}
+        - 데이터 타입: {column_info.get('data_type')}
+        - NULL 비율: {column_info.get('null_ratio', 'N/A')}
+        - 고유값 개수: {column_info.get('unique_count', 'N/A')}{sample_text}
+
+        이 필드는 PostgreSQL의 JSONB 컬럼 내부에 저장된 값입니다.
+        """
+
+        type_specific_info = self._get_type_specific_info(column_info, is_numeric, is_string, is_date)
+
+        prompt = f"""{base_info}{type_specific_info}
+
+        다음 형식으로 응답해주세요:
+        1. 짧은 설명 (한 줄, 20자 이내) - 필드의 비즈니스 의미를 명확히
+        2. 상세 설명 (2-3줄, 비즈니스 의미 및 사용 용도 포함) - 이 JSONB 필드가 제품 정보에서 어떤 역할을 하는지
+        3. 데이터 특성 (NULL 허용 여부, 값 범위, 단위 등) - 실제 값의 의미와 해석 방법
+
+        참고: 이 필드는 SQL에서 {sql_path} 형식으로 조회할 수 있습니다."""
 
         return prompt
 

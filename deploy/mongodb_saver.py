@@ -131,13 +131,19 @@ class MongoDBSaver:
         # column_type 결정
         column_type = self._determine_column_type(column_name, row, df_schema)
 
+        # Check if this is a JSONB field
+        is_jsonb_field = row.get('is_jsonb_field', False)
+
+        # Generate comment with SQL examples
+        comment = self._generate_comment(row, column_name, table_name, is_jsonb_field)
+
         # MongoDB 문서 생성
         document = {
             "_id": f"{table_name}_{column_name}",
             "table": table_name.replace("kt_merged_", "").replace("_20251001", ""),
             "column": column_name,
             "column_type": column_type,
-            "comment": row.get('column_comment', '') if pd.notna(row.get('column_comment')) else "",
+            "comment": comment,
             "short_description": short_desc,
             "long_description": long_desc,
             "data_description": data_desc,
@@ -152,6 +158,13 @@ class MongoDBSaver:
             "created_at": datetime.now(),
             "updated_at": datetime.now()
         }
+
+        # Add JSONB-specific metadata
+        if is_jsonb_field:
+            document["is_jsonb_field"] = True
+            document["jsonb_column"] = row.get('jsonb_column', '')
+            document["field_name"] = row.get('field_name', '')
+            document["original_field_path"] = row.get('original_field_path', '')
 
         # 추가 통계 정보
         self._add_statistics(document, row)
@@ -284,6 +297,60 @@ class MongoDBSaver:
                 "max_length": int(row.get('max_length')) if pd.notna(row.get('max_length')) else None,
                 "avg_length": float(row.get('avg_length')) if pd.notna(row.get('avg_length')) else None
             })
+
+    def _generate_comment(self, row: pd.Series, column_name: str,
+                         table_name: str, is_jsonb_field: bool) -> str:
+        """
+        Generate comment with SQL query examples for Text2SQL support
+        """
+        # Get existing comment from PostgreSQL
+        existing_comment = row.get('column_comment', '')
+        if pd.notna(existing_comment) and existing_comment:
+            base_comment = existing_comment
+        else:
+            base_comment = ""
+
+        # Add SQL examples for JSONB fields
+        if is_jsonb_field:
+            sql_path = column_name  # This is already the SQL path like "product_specification->'KT_SPEC'->>'무게 (g)'"
+            field_name = row.get('field_name', '')
+            data_type = row.get('data_type', 'object')
+
+            # Generate sample values text
+            sample_values = row.get('values', [])
+            sample_text = ""
+            if sample_values:
+                sample_preview = sample_values[:3]
+                sample_text = f" (예시 값: {', '.join(str(v) for v in sample_preview)})"
+
+            # Check if this is a numeric field
+            is_numeric = data_type == 'numeric'
+
+            # Build SQL example comment based on data type
+            if is_numeric:
+                # For numeric fields, provide basic and range query examples
+                sql_examples = f"""
+조회 방법:
+  - 기본 조회: SELECT {sql_path} FROM {table_name}
+  - 범위 검색 (사이): SELECT * FROM {table_name} WHERE ({sql_path})::numeric BETWEEN 최소값 AND 최대값
+{sample_text}
+"""
+            else:
+                # For text fields, provide basic and exact match examples
+                sql_examples = f"""
+조회 방법:
+  - 기본 조회: SELECT {sql_path} FROM {table_name}
+  - 정확한 값 검색: SELECT * FROM {table_name} WHERE {sql_path} = '특정값'
+{sample_text}
+"""
+            # Combine with existing comment
+            if base_comment:
+                return f"{base_comment}\n\n{sql_examples.strip()}"
+            else:
+                return sql_examples.strip()
+
+        # For regular columns, return existing comment or empty
+        return base_comment if base_comment else ""
 
     def _create_backup(self, documents: List[Dict], collection_name: str, output_dir: str):
         """백업 파일 생성"""
